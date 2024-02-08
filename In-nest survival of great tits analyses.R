@@ -275,9 +275,17 @@ fledge.ped[which(fledge.ped$sire == "" | is.na(fledge.ped$sire)),]$sire <- paste
 
 
 ###### Dead ringed chicks (INCOMPLETE) ----
-sum(is.na(gt.data[gt.data$Dead.ringed.chick.ids != "",]$Dead.ringed.chick.ids))  # How many dead ringed chicks?
+sum(is.na(gt.data[gt.data$Dead.ringed.chick.ids != "",]$Dead.ringed.chick.ids))  # How many nests with dead ringed chicks?
 length(gt.data[gt.data$Dead.ringed.chick.ids != "" & !is.na(gt.data$Dead.ringed.chick.ids),]$Dead.ringed.chick.ids)  # How many nests with dead ringed chicks?
-scan(text = gt.data[gt.data$Dead.ringed.chick.ids != "" & !is.na(gt.data$Dead.ringed.chick.ids),]$Dead.ringed.chick.ids, sep = ",", what = "character")
+length(scan(text = gt.data[gt.data$Dead.ringed.chick.ids != "" & !is.na(gt.data$Dead.ringed.chick.ids),]$Dead.ringed.chick.ids, sep = ",", what = "character"))  # Number of ringed chicks identified as failing to fledge
+
+(dead.ringed.chicks <- scan(text = gt.data[gt.data$Dead.ringed.chick.ids != "" & !is.na(gt.data$Dead.ringed.chick.ids),]$Dead.ringed.chick.ids, sep = ",", what = "character"))
+head(rev(sort(table(dead.ringed.chicks))))
+length(dead.ringed.chicks); dead.ringed.chicks <- dead.ringed.chicks[!(dead.ringed.chicks == " unrrunt" | dead.ringed.chicks == " unrrunt")]; length(dead.ringed.chicks)
+
+# Prepare pedigree headings
+fledge.ped$dam <- fledge.ped$Mother
+fledge.ped$sire <- fledge.ped$Father
 
 
 ##### 2013-2023 ----
@@ -348,6 +356,7 @@ dim(gt.data[which(gt.data$nest.deaths == gt.data$Clutch.size),])[1]; dim(gt.data
 dummy.id <- NULL
 dummy.dam <- NULL
 dummy.sire <- NULL
+nest <- NULL
 
 for (i in 1:length(nests.with.dead)){
 
@@ -361,11 +370,25 @@ for (i in 1:length(nests.with.dead)){
     if (is.na(dummy.sire[length(dummy.sire)])){
       dummy.sire[length(dummy.sire)] <- paste0("sire_", gt.data[gt.data$Pnum == nests.with.dead[i],]$Pnum)
     }
+  nest <- c(nest, nests.with.dead[i])
   }
 }
 
 stopifnot(length(dummy.id) == sum(gt.data$nest.deaths)); stopifnot(sum(gt.data$nest.deaths) + sum(gt.data$Num.fledglings) == sum(gt.data$Clutch.size))  # Check that all in-nest deaths have been accounted for
-dead.ped <- data.frame(dummy.id, dummy.dam, dummy.sire); dim(dead.ped)
+dead.ped <- data.frame(dummy.id, dummy.dam, dummy.sire, nest); dim(dead.ped)
+dead.ped$survival <- 0
+colnames(dead.ped) <- c("id", "dam", "sire", "nest", "survival")
+
+
+## Combine all pedigree information ----
+
+all_inclusive.ped <- data.frame(c(dead.ped$id, fledge.ped$id, recent.fledgling.ped$id),
+                                c(dead.ped$dam, fledge.ped$dam, recent.fledgling.ped$dam), 
+                                c(dead.ped$sire, fledge.ped$sire, recent.fledgling.ped$sire)
+                                c(dead.ped$nest, fledge.ped$nest, recent.fledgling.ped$nest)
+                                c(dead.ped$survival, fledge.ped$survival, recent.fledgling.ped$survival)
+                                )
+dim(all_inclusive.ped)
 
 
 #----------------------------------------------------------------------#
