@@ -299,22 +299,22 @@ head(rev(sort(table(recent.fledgling.ped$Father))), n = 10, useNA = "always"); s
 head(rev(sort(table(recent.fledgling.ped$location), useNA = "always")), n = 30)
   
 # Counts of unknown mothers and fathers
-dim(recent.fledgling.ped[which(recent.fledgling.ped$Mother == "" | is.na(recent.fledgling.ped$Mother)),])[1]
-dim(recent.fledgling.ped[which(recent.fledgling.ped$Father == "" | is.na(recent.fledgling.ped$Father)),])[1]
+dim(recent.fledgling.ped[which(recent.fledgling.ped$Mother == "" | is.na(recent.fledgling.ped$Mother)),])[1]; head(rev(sort(table(recent.fledgling.ped$Mother, useNA = "always"))))
+dim(recent.fledgling.ped[which(recent.fledgling.ped$Father == "" | is.na(recent.fledgling.ped$Father)),])[1]; head(rev(sort(table(recent.fledgling.ped$Father, useNA = "always"))))
 
 # Get parent identities (if known) from gt.data
 recent.fledgling.ped <- merge(x = gt.pulli_2, y = gt.data[c("Pnum", "Mother", "Father")], by.x = "location", by.y = "Pnum", all.x = TRUE, all.y = FALSE); colnames(recent.fledgling.ped) <- c("id", "dam", "sire")
 head(rev(sort(table(recent.fledgling.ped$dam))), n = 50, useNA = "always")
 head(rev(sort(table(recent.fledgling.ped$sire))), n = 50, useNA = "always")
 
-###### Unknown parents of ringed chicks ----
-dim(recent.fledgling.ped[which(recent.fledgling.ped$dam == "" | is.na(recent.fledgling.ped$dam)),])[1]  # Number of ringed pulli with unknown mother
-dim(recent.fledgling.ped[which(recent.fledgling.ped$sire == "" | is.na(recent.fledgling.ped$sire)),])[1]  # Number of ringed pulli with unknown father
-
 #### Create parental identities to protect sibships
-recent.fledgling.ped[which(recent.fledgling.ped$dam == "" | is.na(recent.fledgling.ped$dam)),]$dam <- paste0("dam_", recent.fledgling.ped[which(recent.fledgling.ped$dam == "" | is.na(recent.fledgling.ped$dam)),]$pnum); stopifnot(dim(recent.fledgling.ped[which(recent.fledgling.ped$dam == "" | is.na(recent.fledgling.ped$dam)),])[1] == 0)
-recent.fledgling.ped[which(recent.fledgling.ped$sire == "" | is.na(recent.fledgling.ped$sire)),]$sire <- paste0("sire_", recent.fledgling.ped[which(recent.fledgling.ped$sire == "" | is.na(recent.fledgling.ped$sire)),]$pnum); stopifnot(dim(recent.fledgling.ped[which(recent.fledgling.ped$sire == "" | is.na(recent.fledgling.ped$sire)),])[1] == 0)
+recent.fledgling.ped[which(is.na(recent.fledgling.ped$Mother)),]$Mother <- paste0("dam_", recent.fledgling.ped[which(is.na(recent.fledgling.ped$Mother)),]$location); stopifnot(dim(recent.fledgling.ped[which(recent.fledgling.ped$Mother == "dam_" | is.na(recent.fledgling.ped$Mother)),])[1] == 0)
+recent.fledgling.ped[which(is.na(recent.fledgling.ped$Father)),]$Father <- paste0("sire_", recent.fledgling.ped[which(is.na(recent.fledgling.ped$Father)),]$location); stopifnot(dim(recent.fledgling.ped[which(recent.fledgling.ped$Father == "dam_" | is.na(recent.fledgling.ped$Father)),])[1] == 0)
 
+# Everyone has been assigned a mother and a father, whether real or dummy
+recent.fledgling.ped$id <- recent.fledgling.ped$ring
+recent.fledgling.ped$dam <- recent.fledgling.ped$Mother
+recent.fledgling.ped$sire <- recent.fledgling.ped$Father
 
 ###### Dead ringed chicks (INCOMPLETE) ----
 sum(is.na(gt.data[gt.data$Dead.ringed.chick.ids != "",]$Dead.ringed.chick.ids))  # How many dead ringed chicks?
