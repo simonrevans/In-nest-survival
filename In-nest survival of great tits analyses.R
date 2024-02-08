@@ -281,7 +281,7 @@ length(scan(text = gt.data[gt.data$Dead.ringed.chick.ids != "" & !is.na(gt.data$
 
 (dead.ringed.chicks <- scan(text = gt.data[gt.data$Dead.ringed.chick.ids != "" & !is.na(gt.data$Dead.ringed.chick.ids),]$Dead.ringed.chick.ids, sep = ",", what = "character"))
 head(rev(sort(table(dead.ringed.chicks))))
-length(dead.ringed.chicks); dead.ringed.chicks <- dead.ringed.chicks[!(dead.ringed.chicks == " unrrunt" | dead.ringed.chicks == " unrrunt")]; length(dead.ringed.chicks)
+length(dead.ringed.chicks); dead.ringed.chicks <- dead.ringed.chicks[!(dead.ringed.chicks == "unrrunt" | dead.ringed.chicks == " unrrunt")]; length(dead.ringed.chicks)
 
 # Prepare pedigree headings
 fledge.ped$dam <- fledge.ped$Mother
