@@ -202,8 +202,25 @@ gt.data <- gt.data[gt.data$Clutch.size - gt.data$Num.fledglings >= 0,]; table(gt
 gt.egg.counts <- aggregate(gt.data$Clutch.size, by = list(gt.data$year), FUN = function(x) {sum(x[!is.na(x)])}); colnames(gt.egg.counts) <- c("year", "egg.total")
 gt.fledgling.counts <- aggregate(gt.data$Num.fledglings, by = list(gt.data$year), FUN = function(x) {sum(x[!is.na(x)])}); colnames(gt.fledgling.counts) <- c("year", "fledgling.total")
 gt.nest.count <- aggregate(gt.data$year, by = list(gt.data$year), FUN = function(x) {length(x[!is.na(x)])}); colnames(gt.nest.count) <- c("year", "nest.count")
-gt.annual.data <- cbind(gt.nest.count, gt.egg.counts$egg.total, gt.fledgling.counts$fledgling.total, gt.fledgling.counts$fledgling.total/gt.egg.counts$egg.total, (1-(gt.fledgling.counts$fledgling.total/gt.egg.counts$egg.total))/(gt.fledgling.counts$fledgling.total/gt.egg.counts$egg.total))
-  colnames(gt.annual.data) <- c("year", "nest.count", "egg.total", "fledgling.total", "w1", "I1")
+
+# Counting deaths in nests that failed to produce any fledglings
+gt.data$nest.failure <- 1; gt.data[gt.data$Num.fledglings > 0,]$nest.failure <- 0;
+  gt.failed.nest.count <- aggregate(gt.data$nest.failure, by = list(gt.data$year), FUN = sum); colnames(gt.failed.nest.count) <- c("year", "failed.nest.count")
+  gt.mortality.due.to.nest.failure <- aggregate(gt.data[gt.data$nest.failure == 1,]$Clutch.size, by = list(gt.data[gt.data$nest.failure == 1,]$year), FUN = function(x) {sum(x[!is.na(x)])})
+
+# Counting deaths in nests that produced at least one fledgling
+gt.individual.mortality.count <- aggregate(gt.data[gt.data$nest.failure == 0,]$Clutch.size - gt.data[gt.data$nest.failure == 0,]$Num.fledglings, by = list(gt.data[gt.data$nest.failure == 0,]$year), FUN = function(x) {sum(x[!is.na(x)])}); c("year", "individual.mortality.count")
+gt.nonabandoned.nests.count <- aggregate(gt.data[gt.data$nest.failure == 0,]$Clutch.size, by = list(gt.data[gt.data$nest.failure == 0,]$year), FUN = sum)
+
+gt.annual.data <- cbind(gt.nest.count,  # year and nest count
+                        gt.failed.nest.count$failed.nest.count/gt.nest.count$nest.count,  # nest failure rate
+                        gt.mortality.due.to.nest.failure[,2]/gt.egg.counts$egg.total,
+                        gt.egg.counts$egg.total,  # total number of eggs
+                        gt.fledgling.counts$fledgling.total,  # total number of fledglings
+                        gt.individual.mortality.count[,2]/gt.nonabandoned.nests.count[,2],  # mortality rate attributable to death in non-failed nests
+                        gt.fledgling.counts$fledgling.total/gt.egg.counts$egg.total,  # in-nest survival rate (w1)
+                        (1-(gt.fledgling.counts$fledgling.total/gt.egg.counts$egg.total))/(gt.fledgling.counts$fledgling.total/gt.egg.counts$egg.total))  # Opportunity for in-nest selection (I1)
+  colnames(gt.annual.data) <- c("year", "nest.count", "nest.failure.rate", "mortality.rate.due.to.nest.failure", "egg.total", "fledgling.total", "individual.failure.rate", "w1", "I1")
   gt.annual.data
 
 #----------------------------------------------------------------------#
@@ -412,6 +429,7 @@ dim(all_inclusive.ped)
 #----------------------------------------------------------------------#
 # OPPORTUNITY FOR SURVIVAL I: conception to fledging ==================
 #----------------------------------------------------------------------#
+## Overall ----
 # Plot w(1)
 dev.off()
 plot(w1 ~ year, data = gt.annual.data)
@@ -451,30 +469,29 @@ lines(smooth.spline(x = gt.annual.data$year, y = gt.annual.data$I1, df = 10), co
 
 
 # Plotted together (stacked)
-dev.off(); par(mar = c(4, 4, 1, 1), mfrow = c(2, 1))
+dev.off(); par(mar = c(4, 5, 1, 1), mfrow = c(2, 1))
 gt <- "darkolivegreen3"
 
 # Plot 1: In-nest survival
-plot(w1 ~ year, 
+plot((1-w1) ~ year, 
      data = gt.annual.data, 
      xlab = "",
-     ylab = "In-nest survival rate",
+     ylab = "Annual in-nest mortality rate",
      pch = 21,
      bg = gt,
      bty = "l",
-     ylim = c(min(gt.annual.data$w1), max(gt.annual.data$w1)),
      las = 1
      )
-lines(smooth.spline(x = gt.annual.data$year, y = gt.annual.data$w1, df = 10), col = gt, lwd = 2)
-points(x = gt.annual.data$year, y = gt.annual.data$w1, pch = 21, bg = gt)
-text(labels = expression(italic("a")), x = 1959.5, y = max(gt.annual.data$w1), cex = 1.2)
+lines(smooth.spline(x = gt.annual.data$year, y = 1-gt.annual.data$w1, df = 10), col = gt, lwd = 2)
+points(x = gt.annual.data$year, y = 1-gt.annual.data$w1, pch = 21, bg = gt)
+text(labels = expression(italic("a")), x = 1959.5, y = max(1-gt.annual.data$w1), cex = 1.2)
 
 # Plot 2: Opportunity for selection
 par(mar = c(4, 4, 1, 1))
 plot(I1 ~ year, 
      data = gt.annual.data, 
      xlab = "Year",
-     ylab = "Opportunity for in-nest selection",
+     ylab = "Annual opportunity for selection\nvia in-nest survival",
      pch = 21,
      bg = gt,
      bty = "l",
@@ -485,6 +502,49 @@ lines(smooth.spline(x = gt.annual.data$year, y = gt.annual.data$I1, df = 10), co
 points(x = gt.annual.data$year, y = gt.annual.data$I1, pch = 21, bg = gt)
 text(labels = expression(italic("b")), x = 1959.5, y = max(gt.annual.data$I1), cex = 1.2)
 
+# Relationship between the two categories of in-nest mortality
+dev.off()
+par(mar = c(4,4,1,1))
+plot(gt.annual.data$mortality.rate.due.to.nest.failure, gt.annual.data$individual.failure.rate,
+     xlab = "Rate of mortality in a partially succesful nest",
+     ylab = "Rate of mortality in a failed nest",
+     bty = "l",
+     las = 1)
+
+# ...and how it changes over time
+plot(y = gt.annual.data$mortality.rate.due.to.nest.failure/gt.annual.data$individual.failure.rate, 
+     x = gt.annual.data$year,
+     bty = "l",
+     xlab = "Year",
+     ylab = "Relative frequency of mortality in failed nests",
+     las = 1)
+lines(smooth.spline(x = gt.annual.data$year, y = gt.annual.data$mortality.rate.due.to.nest.failure/gt.annual.data$individual.failure.rate, df = 10), lwd =2)
+
+## Separating nest failure and other in-nest mortality events ----
+### In-nest survival ----
+dev.off()
+par(mfrow = c(1, 1), mar = c(4, 4, 1, 1))
+
+# Plot 1: Annual rate of mortality attributable to complete nest failure
+plot(mortality.rate.due.to.nest.failure ~ year, 
+     data = gt.annual.data, 
+     xlab = "",
+     ylab = "",
+     pch = 16,
+     bg = "black",
+     bty = "l",
+     las = 1
+     )
+mtext("Year", side = 1, line = 2.5)
+mtext("Annual mortality rate", side = 2, line = 3)
+lines(smooth.spline(x = gt.annual.data$year, y = gt.annual.data$mortality.rate.due.to.nest.failure, df = 10), col = "black", lwd = 1)
+
+points(x = gt.annual.data$year, y = gt.annual.data$individual.failure.rate, pch = 1)
+lines(smooth.spline(x = gt.annual.data$year, y = gt.annual.data$individual.failure.rate, df = 10), col = "black", lty = 2, lwd = 1)
+
+legend("topright", legend = c("Deaths in failed nests", "Deaths in productive nests"), lty = c(1, 2), pch = c(16, 21), bty = "n", cex = 0.9)
+
+plot(gt.annual.data$mortality.rate.due.to.nest.failure+gt.annual.data$individual.failure.rate, 1-gt.annual.data$w1)
 
 # Can breeding density explain changes in in-nest survival?
 # Exclude years before 1975 because we have an explanation for the chagnes seen then
