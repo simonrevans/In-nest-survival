@@ -26,6 +26,12 @@
 #  Regarding survival, we can assign failure to survive an individual fitness value of 0, which simplifies calculation of I (see: Brodie & Janzen 1996 Evolution)
 
 #----------------------------------------------------------------------#
+# IMPORT PACKAGES =========================================
+#----------------------------------------------------------------------#
+
+library(data.table)
+
+#----------------------------------------------------------------------#
 # SHORTCUT FOR IMPORTING DATA =========================================
 #----------------------------------------------------------------------#
 
@@ -183,6 +189,8 @@ stopifnot(length(unique(all.data$Pnum)) == length(all.data$Pnum)); length(all.da
 #TODO EXCLUDE INFLUENTIAL EXPERIMENTAL MANIPULATIONS
 gt.data <- all.data[which(all.data$Species == "g" & !is.na(all.data$Clutch.size)),]; length(gt.data$Pnum)
 
+# Correct the list of dead ringed chicks for one nest (20151C39), which actually were ringed in other nests (20151C9A & 20151C37)
+gt.data[gt.data$Pnum == "20151C139",]$Dead.ringed.chick.ids <-  ""
 
 table(gt.data$Num.eggs.manipulated); gt.data <- gt.data[gt.data$Num.eggs.manipulated == 0,]; table(gt.data$Num.eggs.manipulated)
 summary(gt.data$Clutch.size); table(gt.data$Clutch.size)
@@ -202,9 +210,7 @@ gt.annual.data <- cbind(gt.nest.count, gt.egg.counts$egg.total, gt.fledgling.cou
 # BUILDING PEDIGREE ===================================================
 #----------------------------------------------------------------------#
 
-## Great tits ----
-
-### Ringed chicks ----
+## Ringed chicks ----
   
 # Revert pnums to the nest-of-origin if they may be different
 stopifnot(sum(is.na(gt.pulli$pnum)) == 0); gt.pulli[gt.pulli$origin_pnum != "",]$pnum <- gt.pulli[gt.pulli$origin_pnum != "",]$origin_pnum
@@ -212,13 +218,13 @@ stopifnot(sum(is.na(gt.pulli$pnum)) == 0); gt.pulli[gt.pulli$origin_pnum != "",]
 # Do all identified fledglings have a pnum?
 dim(gt.pulli[which(gt.pulli$pnum == ""),])[1]  # NO!
 
-#### Known pnum ----
-##### 1960-2012 ----
+### Known pnum ----
+#### 1960-2012 ----
 fledge.ped <- merge(x = gt.pulli[which(gt.pulli$pnum != ""),], y = gt.data[c("Pnum", "Mother", "Father")], by.x = "pnum", by.y = "Pnum", all.x = TRUE, all.y = FALSE); dim(fledge.ped)
 head(rev(sort(table(fledge.ped$Mother))), n = 10, useNA = "always")
 head(rev(sort(table(fledge.ped$Father))), n = 10, useNA = "always")
 
-###### Create dummy parent IDs ----
+##### Create dummy parent IDs ----
 fledge.ped[which(fledge.ped$Mother == ""),]$Mother <- paste0("dam_", fledge.ped[which(fledge.ped$Mother == ""),]$pnum)
 fledge.ped[which(fledge.ped$Father == ""),]$Father <- paste0("dam_", fledge.ped[which(fledge.ped$Father == ""),]$pnum)                                                             
                                                    
@@ -226,7 +232,6 @@ head(rev(sort(table(fledge.ped$Mother))), n = 10, useNA = "always")
 head(rev(sort(table(fledge.ped$Father))), n = 10, useNA = "always")
 
 ###### Unknown pnum ----
-
 # How are these distributed across the study period?
 table(gt.pulli[which(gt.pulli$pnum == ""),]$year)
 
@@ -242,10 +247,8 @@ EX9 <- gt.pulli[which(gt.pulli$site == "EX9" & gt.pulli$pnum == ""),]; dim(EX9)
 EX9$Mother <- "dam_EX9_2011"
 EX9$Father <- "sire_EX9_2011"
 
-
 # Erasing ringing records for fledglings in remaining known site identities, since they are unfamiliar to me (presumably external)
 gt.pulli <- gt.pulli[which(gt.pulli$pnum != "" & gt.pulli$site != ""),]; dim(gt.pulli); head(rev(sort(table(gt.pulli[which(gt.pulli$pnum == ""),]$site))))
-
 
 # So replace unknown pnums with a unique dummy nest identity
 # Is 'id' unique within this group?
@@ -261,7 +264,7 @@ stopifnot(length((gt.pulli[which(gt.pulli$pnum == ""),]$pnum)) == 0)
 head(rev(sort(table(gt.pulli$pnum))), n = 30)
   
 # Get parent identities (if known) from gt.data
-fledge.ped <- merge(x = gt.pulli, y = gt.data[c("Pnum", "Mother", "Father")], by.x = "pnum", by.y = "Pnum", all.x = TRUE, all.y = FALSE); colnames(fledge.ped) <- c("id", "dam", "sire")
+fledge.ped <- merge(x = gt.pulli, y = gt.data[c("Pnum", "Mother", "Father", "year")], by.x = "pnum", by.y = "Pnum", all.x = TRUE, all.y = FALSE); colnames(fledge.ped) <- c("id", "dam", "sire", "year")
 head(rev(sort(table(fledge.ped$dam))), n = 50, useNA = "always")
 head(rev(sort(table(fledge.ped$sire))), n = 50, useNA = "always")
 
@@ -273,15 +276,8 @@ dim(fledge.ped[which(fledge.ped$sire == "" | is.na(fledge.ped$sire)),])[1]  # Nu
 fledge.ped[which(fledge.ped$dam == "" | is.na(fledge.ped$dam)),]$dam <- paste0("dam_", fledge.ped[which(fledge.ped$dam == "" | is.na(fledge.ped$dam)),]$pnum); stopifnot(dim(fledge.ped[which(fledge.ped$dam == "" | is.na(fledge.ped$dam)),])[1] == 0)
 fledge.ped[which(fledge.ped$sire == "" | is.na(fledge.ped$sire)),]$sire <- paste0("sire_", fledge.ped[which(fledge.ped$sire == "" | is.na(fledge.ped$sire)),]$pnum); stopifnot(dim(fledge.ped[which(fledge.ped$sire == "" | is.na(fledge.ped$sire)),])[1] == 0)
 
+fledge.ped$survival <- 1
 
-###### Dead ringed chicks (INCOMPLETE) ----
-sum(is.na(gt.data[gt.data$Dead.ringed.chick.ids != "",]$Dead.ringed.chick.ids))  # How many nests with dead ringed chicks?
-length(gt.data[gt.data$Dead.ringed.chick.ids != "" & !is.na(gt.data$Dead.ringed.chick.ids),]$Dead.ringed.chick.ids)  # How many nests with dead ringed chicks?
-length(scan(text = gt.data[gt.data$Dead.ringed.chick.ids != "" & !is.na(gt.data$Dead.ringed.chick.ids),]$Dead.ringed.chick.ids, sep = ",", what = "character"))  # Number of ringed chicks identified as failing to fledge
-
-(dead.ringed.chicks <- scan(text = gt.data[gt.data$Dead.ringed.chick.ids != "" & !is.na(gt.data$Dead.ringed.chick.ids),]$Dead.ringed.chick.ids, sep = ",", what = "character"))
-head(rev(sort(table(dead.ringed.chicks))))
-length(dead.ringed.chicks); dead.ringed.chicks <- dead.ringed.chicks[!(dead.ringed.chicks == "unrrunt" | dead.ringed.chicks == " unrrunt")]; length(dead.ringed.chicks)
 
 # Prepare pedigree headings
 fledge.ped$dam <- fledge.ped$Mother
@@ -310,26 +306,43 @@ head(rev(sort(table(recent.fledgling.ped$location), useNA = "always")), n = 30)
 dim(recent.fledgling.ped[which(recent.fledgling.ped$Mother == "" | is.na(recent.fledgling.ped$Mother)),])[1]; head(rev(sort(table(recent.fledgling.ped$Mother, useNA = "always"))))
 dim(recent.fledgling.ped[which(recent.fledgling.ped$Father == "" | is.na(recent.fledgling.ped$Father)),])[1]; head(rev(sort(table(recent.fledgling.ped$Father, useNA = "always"))))
 
-# Get parent identities (if known) from gt.data
-recent.fledgling.ped <- merge(x = gt.pulli_2, y = gt.data[c("Pnum", "Mother", "Father")], by.x = "location", by.y = "Pnum", all.x = TRUE, all.y = FALSE); colnames(recent.fledgling.ped) <- c("id", "dam", "sire")
-head(rev(sort(table(recent.fledgling.ped$dam))), n = 50, useNA = "always")
-head(rev(sort(table(recent.fledgling.ped$sire))), n = 50, useNA = "always")
-
 #### Create parental identities to protect sibships
 recent.fledgling.ped[which(is.na(recent.fledgling.ped$Mother)),]$Mother <- paste0("dam_", recent.fledgling.ped[which(is.na(recent.fledgling.ped$Mother)),]$location); stopifnot(dim(recent.fledgling.ped[which(recent.fledgling.ped$Mother == "dam_" | is.na(recent.fledgling.ped$Mother)),])[1] == 0)
 recent.fledgling.ped[which(is.na(recent.fledgling.ped$Father)),]$Father <- paste0("sire_", recent.fledgling.ped[which(is.na(recent.fledgling.ped$Father)),]$location); stopifnot(dim(recent.fledgling.ped[which(recent.fledgling.ped$Father == "dam_" | is.na(recent.fledgling.ped$Father)),])[1] == 0)
 
 # Everyone has been assigned a mother and a father, whether real or dummy
-recent.fledgling.ped$id <- recent.fledgling.ped$ring
+recent.fledgling.ped$id <- tolower(recent.fledgling.ped$ring)
 recent.fledgling.ped$dam <- recent.fledgling.ped$Mother
 recent.fledgling.ped$sire <- recent.fledgling.ped$Father
 
-###### Dead ringed chicks (INCOMPLETE) ----
-sum(is.na(gt.data[gt.data$Dead.ringed.chick.ids != "",]$Dead.ringed.chick.ids))  # How many dead ringed chicks?
-length(gt.data[gt.data$Dead.ringed.chick.ids != "" & !is.na(gt.data$Dead.ringed.chick.ids),]$Dead.ringed.chick.ids)  # How many nests with dead ringed chicks?
-scan(text = gt.data[gt.data$Dead.ringed.chick.ids != "" & !is.na(gt.data$Dead.ringed.chick.ids),]$Dead.ringed.chick.ids, sep = ",", what = "character")
+#### Dead ringed chicks ----
+##### Directly recorded (2013-2023) ----
+#' Note that only for 2013-2023 are there entries for the gt.data$Dead.ringed.chick.ids column:
+aggregate(gt.data[gt.data$Dead.ringed.chick.ids != "",]$Pnum, by = list(gt.data[gt.data$Dead.ringed.chick.ids != "",]$year), FUN = length)
 
+dim(gt.data[gt.data$Dead.ringed.chick.ids != "" & !is.na(gt.data$Dead.ringed.chick.ids),])[1]  # How many nests with dead ringed chicks?
+dead.ringed.chicks <- sort(scan(text = gt.data[gt.data$Dead.ringed.chick.ids != "" & !is.na(gt.data$Dead.ringed.chick.ids),]$Dead.ringed.chick.ids, sep = ",", what = "character")); length(dead.ringed.chicks)
+dead.ringed.chicks <- trimws(dead.ringed.chicks)
+head(rev(sort(table(dead.ringed.chicks))))
+length(dead.ringed.chicks); dead.ringed.chicks <- dead.ringed.chicks[!(dead.ringed.chicks == "unrrunt" | dead.ringed.chicks == " unrrunt")]; length(dead.ringed.chicks)
+head(rev(sort(table(dead.ringed.chicks))))
 
+recent.fledgling.ped$survival <- 1; recent.fledgling.ped[which(recent.fledgling.ped$id %in% dead.ringed.chicks),]$survival <- 0
+table(recent.fledgling.ped$survival)
+
+##### Assigning within nests ----
+#' So for older nests I am unlikely to be able to identify individuals that 
+#' failed to fledge. I think I will have to identify those that were observed
+#' outside the nest and then arbitrarily pick the correct number of nestlings 
+#' from each nest so that the number of survivors equates to the recorded
+#' number of fledglings
+
+#' Before assigning some individuals a death, I first need to establish 
+#' which fledglings were subsequently observed (and thus are known with
+#' certainty to have survived to fledging).
+
+d15.nests <- aggregate(gt.pulli$bto_ring, by = list(gt.pulli$pnum), FUN = length); colnames(d15.nests) <- c("pnum", "number.ringed.chicks")
+d15.nests <- merge(x = d15.nests, y = gt.data[c("Pnum", "Num.fledglings")], by.x = "pnum", by.y = "Pnum", all.x = T, all.y = F)
 
 #### Eggs that did not generate ringed chicks (1960-2023) ----
 table(gt.data$Clutch.size - gt.data$Num.fledglings)  # Nest-level frequency table of ringed chicks failing to fledge
@@ -357,6 +370,7 @@ dummy.id <- NULL
 dummy.dam <- NULL
 dummy.sire <- NULL
 nest <- NULL
+year <- NULL
 
 for (i in 1:length(nests.with.dead)){
 
@@ -371,21 +385,25 @@ for (i in 1:length(nests.with.dead)){
       dummy.sire[length(dummy.sire)] <- paste0("sire_", gt.data[gt.data$Pnum == nests.with.dead[i],]$Pnum)
     }
   nest <- c(nest, nests.with.dead[i])
+  year <- c(year, gt.data[gt.data$Pnum == nests.with.dead[i],]$year)
   }
 }
 
 stopifnot(length(dummy.id) == sum(gt.data$nest.deaths)); stopifnot(sum(gt.data$nest.deaths) + sum(gt.data$Num.fledglings) == sum(gt.data$Clutch.size))  # Check that all in-nest deaths have been accounted for
-dead.ped <- data.frame(dummy.id, dummy.dam, dummy.sire, nest); dim(dead.ped)
+dead.ped <- data.frame(dummy.id, dummy.dam, dummy.sire, nest, year); dim(dead.ped)
 dead.ped$survival <- 0
-colnames(dead.ped) <- c("id", "dam", "sire", "nest", "survival")
+colnames(dead.ped) <- c("id", "dam", "sire", "nest", "year", "survival")
 
 
 ## Combine all pedigree information ----
+all_inclusive.id <- c(dead.ped$id, fledge.ped$id, recent.fledgling.ped$id)
+
 
 all_inclusive.ped <- data.frame(c(dead.ped$id, fledge.ped$id, recent.fledgling.ped$id),
                                 c(dead.ped$dam, fledge.ped$dam, recent.fledgling.ped$dam), 
-                                c(dead.ped$sire, fledge.ped$sire, recent.fledgling.ped$sire)
-                                c(dead.ped$nest, fledge.ped$nest, recent.fledgling.ped$nest)
+                                c(dead.ped$sire, fledge.ped$sire, recent.fledgling.ped$sire),
+                                c(dead.ped$nest, fledge.ped$nest, recent.fledgling.ped$nest),
+                                c(dead.ped$year, fledge.ped$year, recent.fledgling.ped$year),
                                 c(dead.ped$survival, fledge.ped$survival, recent.fledgling.ped$survival)
                                 )
 dim(all_inclusive.ped)
@@ -405,7 +423,6 @@ lines(smooth.spline(x = gt.annual.data$year, y = gt.annual.data$I1, df = 10))
 # Plotting annual in-nest survival for both species
 dev.off(); par(mar = c(4, 4, 1, 1))
 gt <- "darkolivegreen3"
-bt <- "cadetblue1"
 plot(w1 ~ year, 
      data = gt.annual.data, 
      xlab = "Year",
@@ -413,14 +430,10 @@ plot(w1 ~ year,
      pch = 21,
      bg = gt,
      bty = "l",
-     ylim = c(min(c(gt.annual.data$w1, bt.annual.data$w1)), max(c(gt.annual.data$w1, bt.annual.data$w1))),
+     ylim = c(min(gt.annual.data$w1), max(gt.annual.data$w1)),
      las = 1
      )
 lines(smooth.spline(x = gt.annual.data$year, y = gt.annual.data$w1, df = 10), col = gt)
-
-points(x = bt.annual.data$year, y = bt.annual.data$w1, pch = 21, bg = bt)
-lines(smooth.spline(x = bt.annual.data$year, y = bt.annual.data$w1, df = 10), col = bt)
-legend("bottomright", legend = c("Great tits", "Blue tits"), pch = 21, pt.bg = c(gt, bt))
 
 # Plotting annual opportunity for in-nest selection for both species
 dev.off(); par(mar = c(4, 4, 1, 1))
@@ -431,51 +444,46 @@ plot(I1 ~ year,
      pch = 21,
      bg = gt,
      bty = "l",
-     ylim = c(min(c(gt.annual.data$I1, bt.annual.data$I1)), max(c(gt.annual.data$I1, bt.annual.data$I1))),
+     ylim = c(min(gt.annual.data$I1), max(gt.annual.data$I1)),
      las = 1
      )
 lines(smooth.spline(x = gt.annual.data$year, y = gt.annual.data$I1, df = 10), col = gt)
 
-points(x = bt.annual.data$year, y = bt.annual.data$I1, pch = 21, bg = bt)
-lines(smooth.spline(x = bt.annual.data$year, y = bt.annual.data$I1, df = 10), col = bt)
-legend("bottomright", legend = c("Great tits", "Blue tits"), pch = 21, pt.bg = c(gt, bt))
 
-## Stacked plot of I ----
-dev.off(); par(mfrow = c(2,1))
+# Plotted together (stacked)
+dev.off(); par(mar = c(4, 4, 1, 1), mfrow = c(2, 1))
 gt <- "darkolivegreen3"
-bt <- "cadetblue1"
 
-# Great tit in-nest opportunity for selection
-par(mar = c(2, 5, 4, 1))
-plot(I1 ~ year, 
+# Plot 1: In-nest survival
+plot(w1 ~ year, 
      data = gt.annual.data, 
      xlab = "",
-     ylab = "Opportunity for\nin-nest selection",
+     ylab = "In-nest survival rate",
      pch = 21,
      bg = gt,
      bty = "l",
-     xaxt = "n",
-     las = 1,
-     main = "Great tits"
+     ylim = c(min(gt.annual.data$w1), max(gt.annual.data$w1)),
+     las = 1
      )
-#text(x = min(gt.annual.data$year), y = max(gt.annual.data$I1), labels = "a", cex = 1.5)
-lines(smooth.spline(x = gt.annual.data$year, y = gt.annual.data$I1, df = 10), col = gt)
-axis(side = 1, labels = F)
+lines(smooth.spline(x = gt.annual.data$year, y = gt.annual.data$w1, df = 10), col = gt, lwd = 2)
+points(x = gt.annual.data$year, y = gt.annual.data$w1, pch = 21, bg = gt)
+text(labels = expression(italic("a")), x = 1959.5, y = max(gt.annual.data$w1), cex = 1.2)
 
-# Blue tit in-nest opportunity for selection
-par(mar = c(4, 5, 2, 1))
+# Plot 2: Opportunity for selection
+par(mar = c(4, 4, 1, 1))
 plot(I1 ~ year, 
-     data = bt.annual.data, 
+     data = gt.annual.data, 
      xlab = "Year",
-     ylab = "Opportunity for\nin-nest selection",
+     ylab = "Opportunity for in-nest selection",
      pch = 21,
-     bg = bt,
+     bg = gt,
      bty = "l",
-     las = 1,
-     main = "Blue tits"
+     ylim = c(min(gt.annual.data$I1), max(gt.annual.data$I1)),
+     las = 1
      )
-#text(x = min(bt.annual.data$year), y = max(bt.annual.data$I1), labels = "b", cex = 1.5)
-lines(smooth.spline(x = bt.annual.data$year, y = bt.annual.data$I1, df = 10), col = bt)
+lines(smooth.spline(x = gt.annual.data$year, y = gt.annual.data$I1, df = 10), col = gt, lwd =2)
+points(x = gt.annual.data$year, y = gt.annual.data$I1, pch = 21, bg = gt)
+text(labels = expression(italic("b")), x = 1959.5, y = max(gt.annual.data$I1), cex = 1.2)
 
 
 # Can breeding density explain changes in in-nest survival?
@@ -492,12 +500,6 @@ plot(y = gt.annual.data[gt.annual.data$year >= 1975,]$w1, x = gt.annual.data[gt.
      )
 abline(gt.density.model, col = gt, lwd = 2)
 summary(gt.density.model)
-
-# Blue tits
-bt.density.model <- lm(bt.annual.data[bt.annual.data$year >= 1975,]$w1 ~ bt.annual.data[bt.annual.data$year >= 1975,]$nest.count + gt.annual.data[gt.annual.data$year >= 1975,]$nest.count)
-plot(y = bt.annual.data[bt.annual.data$year >= 1975,]$w1, x = bt.annual.data[bt.annual.data$year >= 1975,]$nest.count)
-abline(bt.density.model)
-summary(bt.density.model)
 
 
 # POST-FLEDGING SURVIVAL ----
@@ -663,159 +665,10 @@ I.1 + (I.2*w.1)  # formula for summing total opportunity for selection across on
 w.1
 
 
-#------------------#
-# WYTHAM BLUE TITS #
-#------------------#
 
-bt.data <- read.csv("~/Library/CloudStorage/OneDrive-UniversityofExeter/Research/Prenatal survival/Annual BT totals (eggs, hatchlings, fledglings, recruits).csv", header = T, na.strings = "NA")
-
-# STACKED BAR CHART
-in.nest.data <- bt.data[bt.data$year > 1964,]
-barplot(c(in.nest.data$number.eggs-in.nest.data$number.hatchlings, in.nest.data$number.hatchlings-in.nest.data$number.fledglings, in.nest.data$number.fledglings),
-	names.arg =  in.nest.data[,1],
-	las = 1
-	)
-axis(side = 2, at = c(0, 100000), labels = F, tick = F)	
-legend("topleft", legend = c("Fledged", "Nestling mortality", "Prenatal mortality"), bty = "n", fill = rev(gray.colors(3)), cex = 0.9)
-
-
-# OPPORTUNITY FOR SELECTION
-bt.w.1 <- bt.data$number.hatchlings/bt.data$number.eggs
-bt.I.1 <- (1 - bt.w.1)/bt.w.1
- 
-bt.w.2 <-  bt.data$number.fledglings/bt.data$number.hatchlings
-bt.I.2 <- (1 - bt.w.2)/(bt.w.2)
- 
-bt.w.1.2 <- bt.data$number.fledglings/bt.data$number.eggs
-bt.I.1.2 <- (1 - bt.w.1.2)/bt.w.1.2
-
-plot(x = bt.data$year, y = bt.I.1/bt.I.1.2, xlab =  "Year", ylab = "Proportion attributed to prenatal survival", bty = "l", las = 1, pch = 16, main = "")
-fit <- smooth.spline(x = bt.data$year, y = bt.I.1/bt.I.1.2, df = 8)
-lines(fit, col = "red", lwd = 2)
-
-plot(x = bt.data$year, y = bt.I.1.2, xlab =  "Year", ylab = "Opportunity for selection (pre-fledgling)", bty = "l", las = 1, pch = 16, main = "")
-
-
-# FIGURE COMBINING PLOTS FOR GREAT TITS *AND* BLUE TITS
-par(mfrow = c(2, 2), mar = c(3, 3.5, 1, 1.5))
-label.size <- 0.8
-# Great tits
-
-plot(x = gt.data$year, y = gt.I.1, xlab =  "Year", ylab = "", bty = "l", las = 1, pch = 21, col = "black", bg = "darkred", cex = 0.8)
-mtext(text = "Opportunity for selection (in-nest)", side = 2, line = 2.5, cex = label.size)
- mtext(text = "Year", side = 1, line = 2.1, cex = label.size)
-lines(smooth.spline(x = gt.data$year, y = gt.I.1, df = 10), col = "darkred", lwd = 2)
-par(mar = c(3, 4.5, 1, 0.5))
-plot(x = gt.data$year, y = gt.w.1, ylab = "", bty = "l", las = 1, xlab = "", bg = "darkgreen", pch = 21, cex = 0.8)
-axis(side = 1, labels = F)
-mtext(text = "In-nest survival probability", side = 2, line = 2.5, cex = label.size)
-lines(smooth.spline(x = gt.data$year, y = gt.w.1, df = 10), col = "darkgreen", lwd = 2)
- mtext(text = "Year", side = 1, line = 2.1, cex = label.size)
-
-# Blue tits
-plot(x = bt.data$year, y = bt.I.1.2, xlab =  "Year", ylab = "", bty = "l", las = 1, pch = 21, col = "black", bg = "darkorange", cex = 0.8)
-mtext(text = "Opportunity for selection (in-nest)", side = 2, line = 2.5, cex = label.size)
- mtext(text = "Year", side = 1, line = 2.1, cex = label.size)
-lines(smooth.spline(x = bt.data$year, y = bt.I.1.2, df = 10), col = "darkorange", lwd = 2)
-par(mar = c(3, 4.5, 1, 0.5))
-plot(x = bt.data$year, y = bt.w.1.2, ylab = "", bty = "l", las = 1, xlab = "", bg = "darkblue", pch = 21, cex = 0.8)
-axis(side = 1, labels = F)
-mtext(text = "In-nest survival probability", side = 2, line = 2.5, cex = label.size)
-lines(smooth.spline(x = bt.data$year, y = bt.w.1, df = 10), col = "darkblue", lwd = 2)
- mtext(text = "Year", side = 1, line = 2.1, cex = label.size)
-
-
-# In-nest survival for the two tit species overlaid
-label.size = 1
-par(mar = c(3.5, 3.5, 1, 1))
-plot(x = gt.data$year-0.1, y = gt.w.1, ylab = "", bty = "l", las = 1, xlab = "", bg = "darkgreen", pch = 21, cex = 0.9, ylim = c(min(gt.w.1, bt.w.1.2), max(gt.w.1, bt.w.1.2)))
-mtext(text = "In-nest survival probability", side = 2, line = 2.5, cex = label.size)
-lines(smooth.spline(x = gt.data$year+0.1, y = gt.w.1, df = 10), col = "darkgreen", lwd = 2)
-mtext(text = "Year", side = 1, line = 2.3, cex = label.size)
-
-points(x = bt.data$year+0.1, y = bt.w.1.2, bg = "cadetblue1", pch = 21, cex = 0.9)
-lines(smooth.spline(x = bt.data$year+0.1, y = bt.w.1.2, df = 10), col = "cadetblue1", lwd = 2)
-
-legend("bottomright", legend = c("great tits", "blue tits"), pch = c(21, 21), pt.bg = c("darkgreen", "cadetblue1"), bty = "n", cex = 0.9)
-
-
-#-----------------#
-
-# Opportunity for selection via in-nest survival for the two tit species overlaid
-label.size = 1
-plot(x = gt.data$year-0.2, y = gt.I.1, ylab = "", bty = "l", las = 1, xlab = "", bg = "darkred", pch = 21, cex = 0.8, ylim = c(min(gt.I.1, bt.I.1.2), max(gt.I.1, bt.I.1.2)))
-mtext(text = "Opportunity for selection (in-nest)", side = 2, line = 2.5, cex = label.size)
-lines(smooth.spline(x = gt.data$year, y = gt.I.1, df = 10), col = "darkred", lwd = 2)
-mtext(text = "Year", side = 1, line = 2.1, cex = label.size)
-
-points(x = bt.data$year+0.2, y = bt.I.1.2, bg = "#FDD835", pch = 21, cex = 0.8)
-lines(smooth.spline(x = bt.data$year, y = bt.I.1.2, df = 10), col = "#FDD835", lwd = 2)
-
-legend("topright", legend = c("great tits", "blue tits"), pch = c(21, 21), pt.bg = c("darkred", "#FDD835"), bty = "n", cex = 0.9)
-
-#-------------------#
-# BAGLEY GREAT TITS #
-#-------------------#
-
-bagley.data <- read.csv("~/Library/CloudStorage/OneDrive-UniversityofExeter/Research/Prenatal survival/Annual Bagley GT totals (eggs, fledglings, recruits).csv", header = T, na.strings = "NA")
-bagley.data <- bagley.data[bagley.data$year <= 2012,]# 2014 field season data is incompleted (data collection interrupted by illness, so 2013 estimate of recruit number is poor)
- 
-bagley.w.1 <- bagley.data$number.fledglings/bagley.data$number.eggs
-bagley.I.1 <- (1 - bagley.w.1)/bagley.w.1
- 
-bagley.w.2 <-  bagley.data$number.recruits/bagley.data$number.fledglings
-bagley.I.2 <- (1 - bagley.w.2)/(bagley.w.2)
- 
-bagley.w.1.2 <- bagley.data$number.recruits/bagley.data$number.eggs
-bagley.I.1.2 <- (1 - bagley.w.1.2)/bagley.w.1.2
-
-plot(x = bagley.data$year, y = bagley.I.1/bagley.I.1.2, xlab =  "Year", ylab = "Proportion attributed to in-nest survival", bty = "l", las = 1, pch = 16, main = "")
-
-
-
-#----------------------#
-# COLLARED FLYCATCHERS #
-#----------------------#
-
-cf.data <- read.csv("~/Library/CloudStorage/OneDrive-UniversityofExeter/Research/Prenatal survival/Annual CF totals (eggs, hatchlings, fledglings, recruits).csv", header = T, na.strings = "NA")
-cf.data <- cf.data[complete.cases(cf.data),]
-cf.data <- cf.data[cf.data$year <= 2013,]# Recruitment data for these years seem incomplete
-
-cf.w.1 <- cf.data$number.fledglings/cf.data$number.eggs
-cf.I.1 <- (1 - cf.w.1)/cf.w.1
-
-cf.w.2 <-  cf.data$number.recruits/cf.data$number.fledglings
-cf.I.2 <- (1 - cf.w.2)/(cf.w.2)
- 
-cf.w.1.2 <- cf.data$number.recruits/cf.data$number.eggs
-cf.I.1.2 <- (1 - cf.w.1.2)/cf.w.1.2
-
-# Proportion of viability selection attributable to survival in the nest
-plot(x = cf.data$year, y = cf.I.1/cf.I.1.2, xlab =  "Year", ylab = "Proportion attributed to pre-fledging survival", bty = "l", las = 1, pch = 16)
-fit <- smooth.spline(x = cf.data$year, y = cf.I.1/cf.I.1.2, df = 8)
-lines(fit, col = "red", lwd = 2)
-
-
-
-plot(x = cf.data$year, y = cf.I.1.2.3, xlab =  "Year", ylab = "Opportunity for selection via early-life survival", bty = "l", las = 1, pch = 16, ylim = c(0, max(cf.I.1.2.3)))
-points(x=cf.data$year, y= cf.I.1, pch = 16, col = "red")
-
-# PLOT OF GREAT TITS AND COLLARED FLYCATCHERS
-par(mfrow = c(1,2))
-# Great tits
-plot(x = gt.data$year, y = gt.I.1/gt.I.1.2, xlab =  "Year", ylab = "Proportion attributed to pre-fledging survival", bty = "l", las = 1, pch = 16, main = "Great tits, Oxford")
-fit <- smooth.spline(x = gt.data$year, y = gt.I.1/gt.I.1.2, df = 8)
-lines(fit, col = "red", lwd = 2)
-
-# Collared flycatchers
-plot(x = cf.data$year, y = cf.I.1/cf.I.1.2, xlab =  "Year", ylab = "Proportion attributed to pre-fledging survival", bty = "l", las = 1, pch = 16, main = "Collared flycatchers, Gotland")
-fit <- smooth.spline(x = cf.data$year, y = cf.I.1/cf.I.1.2, df = 8)
-lines(fit, col = "red", lwd = 2)
-
-
-#-----------------------------------------------#
-# Predation rate (from Appendix 1 of Dunn 1977) #
-#-----------------------------------------------#
+#---------------------------------------------------------------#
+# Predation rate (from Appendix 1 of Dunn 1977) ================
+#---------------------------------------------------------------#
 
 plot(gt.data$nest.predation.rate, gt.w.1)
 cor.test(gt.data$nest.predation.rate, gt.w.1)
