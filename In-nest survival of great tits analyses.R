@@ -318,9 +318,10 @@ head(rev(sort(table(recent.fledgling.ped$Father, useNA = "always"))), n = 10); r
 # First remove long labels from nestbox IDs:
 recent.fledgling.ped$location[!grepl("^[[:digit:]]", recent.fledgling.ped$location)] <- sub("\\-.*", "", recent.fledgling.ped$location[!grepl("^[[:digit:]]", recent.fledgling.ped$location)]); unique(recent.fledgling.ped$location[!grepl("^[[:digit:]]", recent.fledgling.ped$location)])
 
-# Then add the year to the nestbox ID to create a more specific broos ID
+# Then add the year to the nestbox ID to create a more specific brood ID
 recent.fledgling.ped$location[!grepl("^[[:digit:]]", recent.fledgling.ped$location)] <- paste0(recent.fledgling.ped$year[!grepl("^[[:digit:]]", recent.fledgling.ped$location)], recent.fledgling.ped$location[!grepl("^[[:digit:]]", recent.fledgling.ped$location)])
 
+# Okay, continue with creating dummy parent IDs
 recent.fledgling.ped[which(recent.fledgling.ped$Mother == "" | is.na(recent.fledgling.ped$Mother)),]$Mother <- paste0("dam_", recent.fledgling.ped[which(recent.fledgling.ped$Mother == "" | is.na(recent.fledgling.ped$Mother)),]$location)
 recent.fledgling.ped[which(recent.fledgling.ped$Father == "" | is.na(recent.fledgling.ped$Father)),]$Father <- paste0("sire_", recent.fledgling.ped[which(recent.fledgling.ped$Father == "" | is.na(recent.fledgling.ped$Father)),]$location)                                                             
                                                    
