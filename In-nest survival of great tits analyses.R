@@ -30,7 +30,9 @@
 #----------------------------------------------------------------------#
 
 library(data.table)
-library(pedigree)
+library(MasterBayes)
+
+install.packages("~/Downloads/nadiv_2.17.2.tar.gz", repos = NULL, type = "source"); library(nadiv)
 
 #----------------------------------------------------------------------#
 # SHORTCUT FOR IMPORTING DATA =========================================
@@ -426,12 +428,17 @@ all_inclusive.ped <- data.frame(c(dead.ped$id, fledge.ped$id, recent.fledgling.p
                                 c(dead.ped$survival, fledge.ped$survival, recent.fledgling.ped$survival)
                                 )
 dim(all_inclusive.ped)
+colnames(all_inclusive.ped) <- c("id", "dam", "sire", "nest", "year", "survival")
 
-all_inclusive.gt.ped <-all_inclusive.ped[, 1:3]; dim(all_inclusive.gt.ped); colnames(all_inclusive.gt.ped) <- c("id", "dam", "sire")
+ordered.gt.ped <- orderPed(all_inclusive.ped[, 1:3]); dim(ordered.gt.ped)
+
+prepped.gt.ped <- prepPed(all_inclusive.ped); dim(all_inclusive.gt.ped)
+
+all_inclusive.gt.ped <-all_inclusive.ped[, 1:3]; dim(all_inclusive.gt.ped); 
 all_inclusive.gt.ped <- orderPed(all_inclusive.gt.ped); dim(all_inclusive.gt.ped)
-all_inclusive.gt.ped <- prepPed(all_inclusive.gt.ped); dim(all_inclusive.gt.ped)
 
-# write.csv(all_inclusive.gt.ped, "~/OneDrive - University of Exeter/Research/Prenatal survival/Ecology Letters special issue/All_inclusive.gt.ped (27Feb2024).csv")
+
+# write.csv(all_inclusive.ped, "~/OneDrive - University of Exeter/Research/Prenatal survival/Ecology Letters special issue/Test.ped (27Feb2024).csv")
 
 #----------------------------------------------------------------------#
 # OPPORTUNITY FOR SURVIVAL I: conception to fledging ==================
