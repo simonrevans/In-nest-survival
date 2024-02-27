@@ -240,15 +240,15 @@ dim(gt.pulli[which(gt.pulli$pnum == ""),])[1]  # NO!
 ### Known pnum ----
 #### 1960-2012 ----
 fledge.ped <- merge(x = gt.pulli[which(gt.pulli$pnum != ""),], y = gt.nest.data[c("Pnum", "Mother", "Father")], by.x = "pnum", by.y = "Pnum", all.x = TRUE, all.y = FALSE); dim(fledge.ped)
-head(rev(sort(table(fledge.ped$Mother))), n = 10, useNA = "always")
-head(rev(sort(table(fledge.ped$Father))), n = 10, useNA = "always")
+head(rev(sort(table(fledge.ped$Mother, useNA = "always"))), n = 10); most.successful.mother.count <- head(rev(sort(table(fledge.ped$Mother, useNA = "always"))))[3]
+head(rev(sort(table(fledge.ped$Father, useNA = "always"))), n = 10); most.successful.father.count <- head(rev(sort(table(fledge.ped$Father, useNA = "always"))))[3]
 
 ##### Create dummy parent IDs ----
-fledge.ped[which(fledge.ped$Mother == ""),]$Mother <- paste0("dam_", fledge.ped[which(fledge.ped$Mother == ""),]$pnum)
-fledge.ped[which(fledge.ped$Father == ""),]$Father <- paste0("dam_", fledge.ped[which(fledge.ped$Father == ""),]$pnum)                                                             
+fledge.ped[which(fledge.ped$Mother == "" | is.na(fledge.ped$Mother)),]$Mother <- paste0("dam_", fledge.ped[which(fledge.ped$Mother == "" | is.na(fledge.ped$Mother)),]$pnum)
+fledge.ped[which(fledge.ped$Father == "" | is.na(fledge.ped$Father)),]$Father <- paste0("dam_", fledge.ped[which(fledge.ped$Father == "" | is.na(fledge.ped$Father)),]$pnum)                                                             
                                                    
-head(rev(sort(table(fledge.ped$Mother))), n = 10, useNA = "always")
-head(rev(sort(table(fledge.ped$Father))), n = 10, useNA = "always")
+head(rev(sort(table(fledge.ped$Mother, useNA = "always"))), n = 10); stopifnot(max(table(fledge.ped$Mother, useNA = "always")) == most.successful.mother.count)
+head(rev(sort(table(fledge.ped$Father, useNA = "always"))), n = 10); stopifnot(max(table(fledge.ped$Father, useNA = "always")) == most.successful.father.count)
 
 ###### Unknown pnum ----
 # How are these distributed across the study period?
@@ -280,27 +280,23 @@ gt.pulli[which(gt.pulli$pnum == ""),]$pnum <- paste0(gt.pulli[which(gt.pulli$pnu
 stopifnot(length((gt.pulli[which(gt.pulli$pnum == ""),]$pnum)) == 0)
 
 # What are the greatest numbers of ringed chicks per nest?
-head(rev(sort(table(gt.pulli$pnum))), n = 30)
+head(rev(sort(table(gt.pulli$pnum, useNA = "always"))), n = 30)
   
-# Get parent identities (if known) from gt.nest.data
-fledge.ped <- merge(x = gt.pulli, y = gt.nest.data[c("Pnum", "Mother", "Father", "year")], by.x = "pnum", by.y = "Pnum", all.x = TRUE, all.y = FALSE); colnames(fledge.ped) <- c("id", "dam", "sire", "year")
-head(rev(sort(table(fledge.ped$dam))), n = 50, useNA = "always")
-head(rev(sort(table(fledge.ped$sire))), n = 50, useNA = "always")
 
 ###### Unknown parents of ringed chicks ----
+head(rev(sort(table(fledge.ped$dam, useNA = "always"))), n = 25)
+head(rev(sort(table(fledge.ped$sire, useNA = "always"))), n = 25)
 dim(fledge.ped[which(fledge.ped$dam == "" | is.na(fledge.ped$dam)),])[1]  # Number of ringed pulli with unknown mother
 dim(fledge.ped[which(fledge.ped$sire == "" | is.na(fledge.ped$sire)),])[1]  # Number of ringed pulli with unknown father
 
 #### Create parental identities to protect sibships
 fledge.ped[which(fledge.ped$dam == "" | is.na(fledge.ped$dam)),]$dam <- paste0("dam_", fledge.ped[which(fledge.ped$dam == "" | is.na(fledge.ped$dam)),]$pnum); stopifnot(dim(fledge.ped[which(fledge.ped$dam == "" | is.na(fledge.ped$dam)),])[1] == 0)
 fledge.ped[which(fledge.ped$sire == "" | is.na(fledge.ped$sire)),]$sire <- paste0("sire_", fledge.ped[which(fledge.ped$sire == "" | is.na(fledge.ped$sire)),]$pnum); stopifnot(dim(fledge.ped[which(fledge.ped$sire == "" | is.na(fledge.ped$sire)),])[1] == 0)
+head(rev(sort(table(fledge.ped$dam, useNA = "always"))), n = 25)
+head(rev(sort(table(fledge.ped$sire, useNA = "always"))), n = 25)
 
 fledge.ped$survival <- 1
-
-
-# Prepare pedigree headings
-fledge.ped$dam <- fledge.ped$Mother
-fledge.ped$sire <- fledge.ped$Father
+# TODO: Reset survival to zero for ringed pulli found in their nest
 
 
 ##### 2013-2023 ----
@@ -308,31 +304,28 @@ dim(gt.pulli_2)[1]
 dim(gt.pulli_2[gt.pulli_2$location == "" | is.na(gt.pulli_2$location),])[1]  # Number of fledglings of unknown nest-of-origin
 stopifnot(length((gt.pulli[which(gt.pulli$pnum == ""),]$location)) == 0)  # Confirm that all non-NA nest IDs are known
 recent.fledgling.ped <- merge(x = gt.pulli_2, y = gt.nest.data[c("Pnum", "Mother", "Father")], by.x = "location", by.y = "Pnum", all.x = TRUE, all.y = FALSE); dim(recent.fledgling.ped)[1]
-head(rev(sort(table(recent.fledgling.ped$Mother))), n = 10, useNA = "always"); recent.most.successful.mother.count <- rev(sort(table(recent.fledgling.ped$Mother)))[2]
-head(rev(sort(table(recent.fledgling.ped$Father))), n = 10, useNA = "always"); recent.most.successful.father.count <- rev(sort(table(recent.fledgling.ped$Father)))[2]
+head(rev(sort(table(recent.fledgling.ped$Mother, useNA = "always"))), n = 10); recent.most.successful.mother.count <- rev(sort(table(recent.fledgling.ped[which(recent.fledgling.ped$Mother != "" & !is.na(recent.fledgling.ped$Mother)),]$Mother)))[1]  # Excluding blanks and NAs
+head(rev(sort(table(recent.fledgling.ped$Father, useNA = "always"))), n = 10); recent.most.successful.father.count <- rev(sort(table(recent.fledgling.ped[which(recent.fledgling.ped$Father != "" & !is.na(recent.fledgling.ped$Father)),]$Father)))[1]  # Excluding blanks and NAs
 
 ###### Create dummy parent IDs ----
-recent.fledgling.ped[which(recent.fledgling.ped$Mother == ""),]$Mother <- paste0("dam_", recent.fledgling.ped[which(recent.fledgling.ped$Mother == ""),]$location)
-recent.fledgling.ped[which(recent.fledgling.ped$Father == ""),]$Father <- paste0("dam_", recent.fledgling.ped[which(recent.fledgling.ped$Father == ""),]$location)                                                             
+recent.fledgling.ped[which(recent.fledgling.ped$Mother == "" | is.na(recent.fledgling.ped$Mother)),]$Mother <- paste0("dam_", recent.fledgling.ped[which(recent.fledgling.ped$Mother == "" | is.na(recent.fledgling.ped$Mother)),]$location)
+recent.fledgling.ped[which(recent.fledgling.ped$Father == "" | is.na(recent.fledgling.ped$Father)),]$Father <- paste0("dam_", recent.fledgling.ped[which(recent.fledgling.ped$Father == "" | is.na(recent.fledgling.ped$Father)),]$location)                                                             
                                                    
-head(rev(sort(table(recent.fledgling.ped$Mother))), n = 10, useNA = "always"); stopifnot(max(table(recent.fledgling.ped$Mother)) == recent.most.successful.mother.count)
-head(rev(sort(table(recent.fledgling.ped$Father))), n = 10, useNA = "always"); stopifnot(max(table(recent.fledgling.ped$Father)) == recent.most.successful.father.count)
+head(rev(sort(table(recent.fledgling.ped$Mother, useNA = "always"))), n = 10); stopifnot(max(table(recent.fledgling.ped$Mother, useNA = "always")) == recent.most.successful.mother.count)
+head(rev(sort(table(recent.fledgling.ped$Father, useNA = "always"))), n = 10); stopifnot(max(table(recent.fledgling.ped$Father, useNA = "always")) == recent.most.successful.father.count)
 
 # What are the greatest numbers of ringed chicks per nest?
 head(rev(sort(table(recent.fledgling.ped$location), useNA = "always")), n = 30)
   
-# Counts of unknown mothers and fathers
-dim(recent.fledgling.ped[which(recent.fledgling.ped$Mother == "" | is.na(recent.fledgling.ped$Mother)),])[1]; head(rev(sort(table(recent.fledgling.ped$Mother, useNA = "always"))))
-dim(recent.fledgling.ped[which(recent.fledgling.ped$Father == "" | is.na(recent.fledgling.ped$Father)),])[1]; head(rev(sort(table(recent.fledgling.ped$Father, useNA = "always"))))
-
-#### Create parental identities to protect sibships
-recent.fledgling.ped[which(is.na(recent.fledgling.ped$Mother)),]$Mother <- paste0("dam_", recent.fledgling.ped[which(is.na(recent.fledgling.ped$Mother)),]$location); stopifnot(dim(recent.fledgling.ped[which(recent.fledgling.ped$Mother == "dam_" | is.na(recent.fledgling.ped$Mother)),])[1] == 0)
-recent.fledgling.ped[which(is.na(recent.fledgling.ped$Father)),]$Father <- paste0("sire_", recent.fledgling.ped[which(is.na(recent.fledgling.ped$Father)),]$location); stopifnot(dim(recent.fledgling.ped[which(recent.fledgling.ped$Father == "dam_" | is.na(recent.fledgling.ped$Father)),])[1] == 0)
-
 # Everyone has been assigned a mother and a father, whether real or dummy
 recent.fledgling.ped$id <- tolower(recent.fledgling.ped$ring)
 recent.fledgling.ped$dam <- recent.fledgling.ped$Mother
 recent.fledgling.ped$sire <- recent.fledgling.ped$Father
+
+# Nest IDs
+recent.fledgling.ped$nest <- recent.fledgling.ped$location
+head(rev(sort(table(recent.fledgling.ped$nest, useNA = "always"))))
+
 
 #### Dead ringed chicks ----
 ##### Directly recorded (2013-2023) ----
@@ -549,8 +542,10 @@ legend("topright", legend = c("Deaths in failed nests", "Deaths in productive ne
 plot(gt.annual.data$mortality.rate.due.to.nest.failure+gt.annual.data$individual.failure.rate, 1-gt.annual.data$w1)
 
 # Can breeding density explain changes in in-nest survival?
-# Exclude years before 1975 because we have an explanation for the chagnes seen then
-gt.density.model <- lm(gt.annual.data[gt.annual.data$year >= 1975,]$w1 ~ gt.annual.data[gt.annual.data$year >= 1975,]$nest.count)
+#' Exclude years before 1975 because we have an explanation for the changes seen then
+#' Can candidate explanatory factors account for the long-term trend?
+
+gt.density.model <- lm(gt.annual.data[gt.annual.data$year >= 1975 & gt.annual.data$year <= 2011,]$w1 ~ gt.annual.data[gt.annual.data$year >= 1975 & gt.annual.data$year <= 2011,]$nest.count + gt.annual.data[gt.annual.data$year >= 1975 & gt.annual.data$year <= 2011,]$year)
 plot(y = gt.annual.data[gt.annual.data$year >= 1975,]$w1, x = gt.annual.data[gt.annual.data$year >= 1975,]$nest.count,
      pch = 21,
      bg = gt,
@@ -563,6 +558,11 @@ plot(y = gt.annual.data[gt.annual.data$year >= 1975,]$w1, x = gt.annual.data[gt.
 abline(gt.density.model, col = gt, lwd = 2)
 summary(gt.density.model)
 
+# TODO
+# Can we estimate the proportion of adults identified without handling?
+#' i.e., via reading RFID tags
+#' 
+ringing.data_2
 
 # POST-FLEDGING SURVIVAL ----
 
