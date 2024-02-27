@@ -238,6 +238,8 @@ gt.annual.data <- cbind(gt.nest.count,  # year and nest count
 # Revert pnums to the nest-of-origin if they may be different
 stopifnot(sum(is.na(gt.pulli$pnum)) == 0); gt.pulli[gt.pulli$origin_pnum != "",]$pnum <- gt.pulli[gt.pulli$origin_pnum != "",]$origin_pnum
 
+  
+  
 # Do all identified fledglings have a pnum?
 dim(gt.pulli[which(gt.pulli$pnum == ""),])[1]  # NO!
 
@@ -297,12 +299,6 @@ head(rev(sort(table(fledge.ped$sire, useNA = "always"))), n = 25)
 dim(fledge.ped[which(fledge.ped$dam == "" | is.na(fledge.ped$dam)),])[1]  # Number of ringed pulli with unknown mother
 dim(fledge.ped[which(fledge.ped$sire == "" | is.na(fledge.ped$sire)),])[1]  # Number of ringed pulli with unknown father
 
-#### Create parental identities to protect sibships
-fledge.ped[which(fledge.ped$dam == "" | is.na(fledge.ped$dam)),]$dam <- paste0("dam_", fledge.ped[which(fledge.ped$dam == "" | is.na(fledge.ped$dam)),]$pnum); stopifnot(dim(fledge.ped[which(fledge.ped$dam == "" | is.na(fledge.ped$dam)),])[1] == 0)
-fledge.ped[which(fledge.ped$sire == "" | is.na(fledge.ped$sire)),]$sire <- paste0("sire_", fledge.ped[which(fledge.ped$sire == "" | is.na(fledge.ped$sire)),]$pnum); stopifnot(dim(fledge.ped[which(fledge.ped$sire == "" | is.na(fledge.ped$sire)),])[1] == 0)
-head(rev(sort(table(fledge.ped$dam, useNA = "always"))), n = 25)
-head(rev(sort(table(fledge.ped$sire, useNA = "always"))), n = 25)
-
 fledge.ped$survival <- 1
 # TODO: Reset survival to zero for ringed pulli found in their nest
 
@@ -310,12 +306,21 @@ fledge.ped$survival <- 1
 ##### 2013-2023 (recent.fledgling.ped) ----
 dim(gt.pulli_2)[1]
 dim(gt.pulli_2[gt.pulli_2$location == "" | is.na(gt.pulli_2$location),])[1]  # Number of fledglings of unknown nest-of-origin
-stopifnot(length((gt.pulli[which(gt.pulli$pnum == ""),]$location)) == 0)  # Confirm that all non-NA nest IDs are known
+stopifnot(length((gt.pulli_2[which(gt.pulli$pnum == ""),]$location)) == 0)  # Confirm that all non-NA nest IDs are known
 recent.fledgling.ped <- merge(x = gt.pulli_2, y = gt.nest.data[c("Pnum", "Mother", "Father")], by.x = "location", by.y = "Pnum", all.x = TRUE, all.y = FALSE); dim(recent.fledgling.ped)[1]
 head(rev(sort(table(recent.fledgling.ped$Mother, useNA = "always"))), n = 10); recent.most.successful.mother.count <- rev(sort(table(recent.fledgling.ped[which(recent.fledgling.ped$Mother != "" & !is.na(recent.fledgling.ped$Mother)),]$Mother)))[1]  # Excluding blanks and NAs
 head(rev(sort(table(recent.fledgling.ped$Father, useNA = "always"))), n = 10); recent.most.successful.father.count <- rev(sort(table(recent.fledgling.ped[which(recent.fledgling.ped$Father != "" & !is.na(recent.fledgling.ped$Father)),]$Father)))[1]  # Excluding blanks and NAs
 
 ###### Create dummy parent IDs ----
+#' Some location IDs are nestbox only (no year), others have, e.g.,
+#' "-WYT (Wytham Great Wood, Oxford)" appended to them
+
+# First remove long labels from nestbox IDs:
+recent.fledgling.ped$location[!grepl("^[[:digit:]]", recent.fledgling.ped$location)] <- sub("\\-.*", "", recent.fledgling.ped$location[!grepl("^[[:digit:]]", recent.fledgling.ped$location)]); unique(recent.fledgling.ped$location[!grepl("^[[:digit:]]", recent.fledgling.ped$location)])
+
+# Then add the year to the nestbox ID to create a more specific broos ID
+recent.fledgling.ped$location[!grepl("^[[:digit:]]", recent.fledgling.ped$location)] <- paste0(recent.fledgling.ped$year[!grepl("^[[:digit:]]", recent.fledgling.ped$location)], recent.fledgling.ped$location[!grepl("^[[:digit:]]", recent.fledgling.ped$location)])
+
 recent.fledgling.ped[which(recent.fledgling.ped$Mother == "" | is.na(recent.fledgling.ped$Mother)),]$Mother <- paste0("dam_", recent.fledgling.ped[which(recent.fledgling.ped$Mother == "" | is.na(recent.fledgling.ped$Mother)),]$location)
 recent.fledgling.ped[which(recent.fledgling.ped$Father == "" | is.na(recent.fledgling.ped$Father)),]$Father <- paste0("sire_", recent.fledgling.ped[which(recent.fledgling.ped$Father == "" | is.na(recent.fledgling.ped$Father)),]$location)                                                             
                                                    
@@ -429,16 +434,14 @@ all_inclusive.ped <- data.frame(c(dead.ped$id, fledge.ped$id, recent.fledgling.p
                                 )
 dim(all_inclusive.ped)
 colnames(all_inclusive.ped) <- c("id", "dam", "sire", "nest", "year", "survival")
+# write.csv(all_inclusive.ped, "~/OneDrive - University of Exeter/Research/Prenatal survival/Ecology Letters special issue/Test.ped (27Feb2024).csv")
 
-ordered.gt.ped <- orderPed(all_inclusive.ped[, 1:3]); dim(ordered.gt.ped)
 
-prepped.gt.ped <- prepPed(all_inclusive.ped); dim(all_inclusive.gt.ped)
+prepped.gt.ped <- prepPed(all_inclusive.ped); dim(prepped.gt.ped)
 
 all_inclusive.gt.ped <-all_inclusive.ped[, 1:3]; dim(all_inclusive.gt.ped); 
 all_inclusive.gt.ped <- orderPed(all_inclusive.gt.ped); dim(all_inclusive.gt.ped)
 
-
-# write.csv(all_inclusive.ped, "~/OneDrive - University of Exeter/Research/Prenatal survival/Ecology Letters special issue/Test.ped (27Feb2024).csv")
 
 #----------------------------------------------------------------------#
 # OPPORTUNITY FOR SURVIVAL I: conception to fledging ==================
