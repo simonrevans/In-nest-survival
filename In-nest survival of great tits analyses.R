@@ -249,7 +249,7 @@ head(rev(sort(table(fledge.ped$Father, useNA = "always"))), n = 10); most.succes
 
 ##### Create dummy parent IDs ----
 fledge.ped[which(fledge.ped$Mother == "" | is.na(fledge.ped$Mother)),]$Mother <- paste0("dam_", fledge.ped[which(fledge.ped$Mother == "" | is.na(fledge.ped$Mother)),]$pnum)
-fledge.ped[which(fledge.ped$Father == "" | is.na(fledge.ped$Father)),]$Father <- paste0("dam_", fledge.ped[which(fledge.ped$Father == "" | is.na(fledge.ped$Father)),]$pnum)                                                             
+fledge.ped[which(fledge.ped$Father == "" | is.na(fledge.ped$Father)),]$Father <- paste0("sire_", fledge.ped[which(fledge.ped$Father == "" | is.na(fledge.ped$Father)),]$pnum)                                                             
                                                    
 head(rev(sort(table(fledge.ped$Mother, useNA = "always"))), n = 10); stopifnot(max(table(fledge.ped$Mother, useNA = "always")) == most.successful.mother.count)
 head(rev(sort(table(fledge.ped$Father, useNA = "always"))), n = 10); stopifnot(max(table(fledge.ped$Father, useNA = "always")) == most.successful.father.count)
@@ -317,7 +317,7 @@ head(rev(sort(table(recent.fledgling.ped$Father, useNA = "always"))), n = 10); r
 
 ###### Create dummy parent IDs ----
 recent.fledgling.ped[which(recent.fledgling.ped$Mother == "" | is.na(recent.fledgling.ped$Mother)),]$Mother <- paste0("dam_", recent.fledgling.ped[which(recent.fledgling.ped$Mother == "" | is.na(recent.fledgling.ped$Mother)),]$location)
-recent.fledgling.ped[which(recent.fledgling.ped$Father == "" | is.na(recent.fledgling.ped$Father)),]$Father <- paste0("dam_", recent.fledgling.ped[which(recent.fledgling.ped$Father == "" | is.na(recent.fledgling.ped$Father)),]$location)                                                             
+recent.fledgling.ped[which(recent.fledgling.ped$Father == "" | is.na(recent.fledgling.ped$Father)),]$Father <- paste0("sire_", recent.fledgling.ped[which(recent.fledgling.ped$Father == "" | is.na(recent.fledgling.ped$Father)),]$location)                                                             
                                                    
 head(rev(sort(table(recent.fledgling.ped$Mother, useNA = "always"))), n = 10); stopifnot(max(table(recent.fledgling.ped$Mother, useNA = "always")) == recent.most.successful.mother.count)
 head(rev(sort(table(recent.fledgling.ped$Father, useNA = "always"))), n = 10); stopifnot(max(table(recent.fledgling.ped$Father, useNA = "always")) == recent.most.successful.father.count)
