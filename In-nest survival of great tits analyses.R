@@ -30,6 +30,7 @@
 #----------------------------------------------------------------------#
 
 library(data.table)
+library(pedigree)
 
 #----------------------------------------------------------------------#
 # SHORTCUT FOR IMPORTING DATA =========================================
@@ -37,6 +38,7 @@ library(data.table)
 
 gt.annual.data <- read.csv("~/Library/CloudStorage/OneDrive-UniversityofExeter/Research/Prenatal survival/Ecology Letters special issue/gt.annual.data (27Feb2024).csv")
 gt.pulli <- read.csv("~/Library/CloudStorage/OneDrive-UniversityofExeter/Research/Prenatal survival/Ecology Letters special issue/gt.pulli (27Feb2024).csv")
+all_inclusive.gt.ped <- read.csv("~/OneDrive - University of Exeter/Research/Prenatal survival/Ecology Letters special issue/All_inclusive.gt.ped (27Feb2024).csv")
 
 #----------------------------------------------------------------------#
 # IMPORTING DATA ======================================================
@@ -238,7 +240,7 @@ stopifnot(sum(is.na(gt.pulli$pnum)) == 0); gt.pulli[gt.pulli$origin_pnum != "",]
 dim(gt.pulli[which(gt.pulli$pnum == ""),])[1]  # NO!
 
 ### Known pnum ----
-#### 1960-2012 ----
+#### 1960-2012 (fledge.ped) ----
 fledge.ped <- merge(x = gt.pulli[which(gt.pulli$pnum != ""),], y = gt.nest.data[c("Pnum", "Mother", "Father")], by.x = "pnum", by.y = "Pnum", all.x = TRUE, all.y = FALSE); dim(fledge.ped)
 head(rev(sort(table(fledge.ped$Mother, useNA = "always"))), n = 10); most.successful.mother.count <- head(rev(sort(table(fledge.ped$Mother, useNA = "always"))))[3]
 head(rev(sort(table(fledge.ped$Father, useNA = "always"))), n = 10); most.successful.father.count <- head(rev(sort(table(fledge.ped$Father, useNA = "always"))))[3]
@@ -281,6 +283,10 @@ stopifnot(length((gt.pulli[which(gt.pulli$pnum == ""),]$pnum)) == 0)
 
 # What are the greatest numbers of ringed chicks per nest?
 head(rev(sort(table(gt.pulli$pnum, useNA = "always"))), n = 30)
+
+fledge.ped$dam <- fledge.ped$Mother
+fledge.ped$sire <- fledge.ped$Father
+fledge.ped$nest <- fledge.ped$pnum
   
 
 ###### Unknown parents of ringed chicks ----
@@ -299,7 +305,7 @@ fledge.ped$survival <- 1
 # TODO: Reset survival to zero for ringed pulli found in their nest
 
 
-##### 2013-2023 ----
+##### 2013-2023 (recent.fledgling.ped) ----
 dim(gt.pulli_2)[1]
 dim(gt.pulli_2[gt.pulli_2$location == "" | is.na(gt.pulli_2$location),])[1]  # Number of fledglings of unknown nest-of-origin
 stopifnot(length((gt.pulli[which(gt.pulli$pnum == ""),]$location)) == 0)  # Confirm that all non-NA nest IDs are known
@@ -327,7 +333,7 @@ recent.fledgling.ped$nest <- recent.fledgling.ped$location
 head(rev(sort(table(recent.fledgling.ped$nest, useNA = "always"))))
 
 
-#### Dead ringed chicks ----
+#### Dead ringed chicks (dead.ped) ----
 ##### Directly recorded (2013-2023) ----
 #' Note that only for 2013-2023 are there entries for the gt.nest.data$Dead.ringed.chick.ids column:
 aggregate(gt.nest.data[gt.nest.data$Dead.ringed.chick.ids != "",]$Pnum, by = list(gt.nest.data[gt.nest.data$Dead.ringed.chick.ids != "",]$year), FUN = length)
@@ -389,11 +395,11 @@ for (i in 1:length(nests.with.dead)){
   for (j in 1:gt.nest.data[gt.nest.data$Pnum == nests.with.dead[i],]$nest.deaths){
   dummy.id <- c(dummy.id, paste0("dead_", gt.nest.data[gt.nest.data$Pnum == nests.with.dead[i],]$Pnum, "_", j))
   dummy.dam <- c(dummy.dam, gt.nest.data[gt.nest.data$Pnum == nests.with.dead[i],]$Mother)
-    if (is.na(dummy.dam[length(dummy.dam)])){
+    if (is.na(dummy.dam[length(dummy.dam)]) | dummy.dam[length(dummy.dam)] == ""){
       dummy.dam[length(dummy.dam)] <- paste0("dam_", gt.nest.data[gt.nest.data$Pnum == nests.with.dead[i],]$Pnum)
     }
   dummy.sire <- c(dummy.sire, gt.nest.data[gt.nest.data$Pnum == nests.with.dead[i],]$Father)
-    if (is.na(dummy.sire[length(dummy.sire)])){
+    if (is.na(dummy.sire[length(dummy.sire)]) | dummy.sire[length(dummy.sire)] == ""){
       dummy.sire[length(dummy.sire)] <- paste0("sire_", gt.nest.data[gt.nest.data$Pnum == nests.with.dead[i],]$Pnum)
     }
   nest <- c(nest, nests.with.dead[i])
@@ -402,6 +408,7 @@ for (i in 1:length(nests.with.dead)){
 }
 
 stopifnot(length(dummy.id) == sum(gt.nest.data$nest.deaths)); stopifnot(sum(gt.nest.data$nest.deaths) + sum(gt.nest.data$Num.fledglings) == sum(gt.nest.data$Clutch.size))  # Check that all in-nest deaths have been accounted for
+stopifnot(length(dummy.dam) == length(dummy.dam[dummy.dam != ""])); stopifnot(length(dummy.sire) == length(dummy.sire[dummy.sire != ""]))
 dead.ped <- data.frame(dummy.id, dummy.dam, dummy.sire, nest, year); dim(dead.ped)
 dead.ped$survival <- 0
 colnames(dead.ped) <- c("id", "dam", "sire", "nest", "year", "survival")
@@ -420,6 +427,11 @@ all_inclusive.ped <- data.frame(c(dead.ped$id, fledge.ped$id, recent.fledgling.p
                                 )
 dim(all_inclusive.ped)
 
+all_inclusive.gt.ped <-all_inclusive.ped[, 1:3]; dim(all_inclusive.gt.ped); colnames(all_inclusive.gt.ped) <- c("id", "dam", "sire")
+all_inclusive.gt.ped <- orderPed(all_inclusive.gt.ped); dim(all_inclusive.gt.ped)
+all_inclusive.gt.ped <- prepPed(all_inclusive.gt.ped); dim(all_inclusive.gt.ped)
+
+# write.csv(all_inclusive.gt.ped, "~/OneDrive - University of Exeter/Research/Prenatal survival/Ecology Letters special issue/All_inclusive.gt.ped (27Feb2024).csv")
 
 #----------------------------------------------------------------------#
 # OPPORTUNITY FOR SURVIVAL I: conception to fledging ==================
