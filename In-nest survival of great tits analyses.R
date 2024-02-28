@@ -29,9 +29,11 @@
 # IMPORT PACKAGES =========================================
 #----------------------------------------------------------------------#
 
+R.Version(); citation()
 library(data.table)
 install.packages("~/Downloads/nadiv_2.17.2.tar.gz", repos = NULL, type = "source"); library(nadiv)
-library(asreml)
+library(asreml); citation("asreml")
+library(QGglmm)
 
 #----------------------------------------------------------------------#
 # SHORTCUT FOR IMPORTING DATA =========================================
@@ -628,30 +630,76 @@ summary(gt.density.model)
 ringing.data_2
 
 ## ANIMAL MODEL ----
-### In-nest survival ----
+
 all_inclusive.ped$YEAR <- as.factor(all_inclusive.ped$year)
 all_inclusive.ped$MOTHER <- as.factor(all_inclusive.ped$dam)
+all_inclusive.ped$NEST <- as.factor(all_inclusive.ped$nest)
 all_inclusive.ped$animal <- as.factor(all_inclusive.ped$id)
+
+# Identify whether individuals were in failed or (partially) successful nests
+nest.success <- tapply(all_inclusive.ped$survival, all_inclusive.ped$nest, mean)
+all_inclusive.ped$within.nest.survival.rate <- nest.success[all_inclusive.ped$nest]
 
 ainv <- ainverse(prepped.gt.ped)
 
-nest.survival.animal.model <- asreml(fixed = survival ~ 1,
+### All individuals ----
+# Sampling
+length(unique(all_inclusive.ped$id)); stopifnot(length(unique(all_inclusive.ped$id)) == dim(all_inclusive.ped)[1])
+length(unique(all_inclusive.ped$nest))
+
+in_nest.survival.animal.model <- asreml(fixed = survival ~ 1,
                                      random = ~ YEAR
-                                     + MOTHER
+                                     #+ MOTHER
+                                     + NEST
                                      + vm(animal, ainv)
                                      ,residual = ~idv(units),
-                                     family = asr_binomial(),
+                                     family = asr_binomial(link = "logit", dispersion = 1),
                                      data = all_inclusive.ped,
                                      #workspace = 32e6,  # Boost memory
                                      maxit = 50
                                      )
 
-summary(nest.survival.animal.model)$varcomp[,c("component", "std.error", "bound")]
-summary(nest.survival.animal.model,  coef=T)$coef.fixed
+summary(in_nest.survival.animal.model)$varcomp[,c("component", "std.error", "bound")]
+summary(in_nest.survival.animal.model,  coef=T)$coef.fixed
 
-### In-nest fitness
+(mu <- summary(in_nest.survival.animal.model,  coef=T)$coef.fixed["(Intercept)", "solution"])
+(Va <- summary(in_nest.survival.animal.model)$varcomp["vm(animal, ainv)",c("component")])
+(Vy <- summary(in_nest.survival.animal.model)$varcomp["YEAR",c("component")])
+(Vn <- summary(in_nest.survival.animal.model)$varcomp["NEST",c("component")])
+(Vp <- sum(summary(in_nest.survival.animal.model)$varcomp[,c("component")]))
+QGparams(mu = mu, var.a = Va, var.p = Vp, model = "binom1.logit")  # ADDITIVE GENETIC
+QGparams(mu = mu, var.a = Vy, var.p = Vp, model = "binom1.logit")  # YEAR
+QGparams(mu = mu, var.a = Vn, var.p = Vp, model = "binom1.logit")  # NEST
 
+### Successful nests only ----
 
+length(unique(all_inclusive.ped[which(all_inclusive.ped$within.nest.survival.rate != 0),]$id)); stopifnot(length(unique(all_inclusive.ped[which(all_inclusive.ped$within.nest.survival.rate != 0),]$id)) == dim(all_inclusive.ped[which(all_inclusive.ped$within.nest.survival.rate != 0),])[1])
+length(unique(all_inclusive.ped[which(all_inclusive.ped$within.nest.survival.rate != 0),]$nest))
+
+successful.nest.survival.animal.model <- asreml(fixed = survival ~ 1,
+                                     random = ~ YEAR
+                                     #+ MOTHER
+                                     + NEST
+                                     + vm(animal, ainv)
+                                     ,residual = ~idv(units),
+                                     family = asr_binomial(link = "logit", dispersion = 1),
+                                     data = all_inclusive.ped[which(all_inclusive.ped$within.nest.survival.rate != 0),],
+                                     #workspace = 32e6,  # Boost memory
+                                     maxit = 50
+                                     )
+
+summary(successful.nest.survival.animal.model)$varcomp[,c("component", "std.error", "bound")]
+summary(successful.nest.survival.animal.model,  coef=T)$coef.fixed
+
+(successful.nest.mu <- summary(successful.nest.survival.animal.model,  coef=T)$coef.fixed["(Intercept)", "solution"])
+(successful.nest.Va <- summary(successful.nest.survival.animal.model)$varcomp["vm(animal, ainv)",c("component")])
+(successful.nest.Vy <- summary(successful.nest.survival.animal.model)$varcomp["YEAR",c("component")])
+(successful.nest.Vn <- summary(successful.nest.survival.animal.model)$varcomp["NEST",c("component")])
+(successful.nest.Vp <- sum(summary(successful.nest.survival.animal.model)$varcomp[,c("component")]))
+
+QGparams(mu = successful.nest.mu, var.a = successful.nest.Va, var.p = successful.nest.Vp, model = "binom1.logit")  # ADDITIVE GENETIC
+QGparams(mu = successful.nest.mu, var.a = successful.nest.Vy, var.p = successful.nest.Vp, model = "binom1.logit")  # YEAR
+QGparams(mu = successful.nest.mu, var.a = successful.nest.Vn, var.p = successful.nest.Vp, model = "binom1.logit")  # NEST
 
 ## MULTI-PARTY ANIMAL MODEL ----
 mp.animal.model <- asreml(fixed = survival ~ 1,
