@@ -40,7 +40,7 @@ install.packages("~/Downloads/nadiv_2.17.2.tar.gz", repos = NULL, type = "source
 
 gt.annual.data <- read.csv("~/Library/CloudStorage/OneDrive-UniversityofExeter/Research/Prenatal survival/Ecology Letters special issue/gt.annual.data (27Feb2024).csv")
 gt.pulli <- read.csv("~/Library/CloudStorage/OneDrive-UniversityofExeter/Research/Prenatal survival/Ecology Letters special issue/gt.pulli (27Feb2024).csv")
-all_inclusive.gt.ped <- read.csv("~/OneDrive - University of Exeter/Research/Prenatal survival/Ecology Letters special issue/All_inclusive.gt.ped (27Feb2024).csv")
+#all_inclusive.gt.ped <- read.csv("~/OneDrive - University of Exeter/Research/Prenatal survival/Ecology Letters special issue/All_inclusive.gt.ped (27Feb2024).csv")
 
 #----------------------------------------------------------------------#
 # IMPORTING DATA ======================================================
@@ -177,7 +177,7 @@ dim(gt.pulli_2); gt.pulli_2 <- gt.pulli_2[which(gt.pulli_2$Freq == 1 | (gt.pulli
 stopifnot(max(head(rev(sort(table(gt.pulli_2$ring))))) == 1)
 
 ## Saving dataset
-# write.csv(gt.pulli, "~/Library/CloudStorage/OneDrive-UniversityofExeter/Research/Prenatal survival/Ecology Letters special issue/gt.pulli (27Feb2024).csv")
+# write.csv(gt.pulli, "~/Library/CloudStorage/OneDrive-UniversityofExeter/Research/Prenatal survival/Ecology Letters special issue/gt.pulli (28Feb2024).csv")
 
 
 #----------------------------------------------------------------------#
@@ -191,6 +191,8 @@ stopifnot(length(unique(all.data$Pnum)) == length(all.data$Pnum)); length(all.da
 ## Great tits ----
 #TODO EXCLUDE INFLUENTIAL EXPERIMENTAL MANIPULATIONS
 gt.nest.data <- all.data[which(all.data$Species == "g" & !is.na(all.data$Clutch.size)),]; length(gt.nest.data$Pnum)
+gt.nest.data$Mother <- toupper(gt.nest.data$Mother)
+gt.nest.data$Father <- toupper(gt.nest.data$Father)
 
 # Correct the list of dead ringed chicks for one nest (20151C39), which actually were ringed in other nests (20151C9A & 20151C37)
 gt.nest.data[gt.nest.data$Pnum == "20151C139",]$Dead.ringed.chick.ids <-  ""
@@ -227,7 +229,7 @@ gt.annual.data <- cbind(gt.nest.count,  # year and nest count
   gt.annual.data
 
 ## Save dataset as .csv file
-# write.csv(gt.annual.data, "~/Library/CloudStorage/OneDrive-UniversityofExeter/Research/Prenatal survival/Ecology Letters special issue/gt.annual.data (27Feb2024).csv")
+# write.csv(gt.annual.data, "~/Library/CloudStorage/OneDrive-UniversityofExeter/Research/Prenatal survival/Ecology Letters special issue/gt.annual.data (28Feb2024).csv")
 
 #' Correcting listing of individuals as both Mother and Father within the long-term breeding records. 
 #' I am aware of nine entries in which females are also listed as males.
@@ -236,7 +238,7 @@ gt.annual.data <- cbind(gt.nest.count,  # year and nest count
 # Individual 1: E985078
 gt.nest.data[which(gt.nest.data$Mother == "E985078" | gt.nest.data$Father == "E985078"),c(1:3, 37:38)]  # Individual is listed as a father in three years, a mother once.
 #' What of its partner when listed as a Mother?
-gt.nest.data[which(gt.nest.data$Mother == "TC58285" | gt.nest.data$Father == "TC58285"),c(1:3, 37:38)]  # Listed as a Father in two years
+gt.nest.data[which(gt.nest.data$Mother == "TC58285" | gt.nest.data$Father == "TC58285"),c(1:3, 37:38)]  # Listed as a Father in three years
 #' Reset entry as Mother to unknown
 gt.nest.data[which(gt.nest.data$Pnum == "20081CP35"),]$Mother <- ""
 
@@ -244,29 +246,34 @@ gt.nest.data[which(gt.nest.data$Pnum == "20081CP35"),]$Mother <- ""
 gt.nest.data[which(gt.nest.data$Mother == "X239739" | gt.nest.data$Father == "X239739"),c(1:3, 37:38)]  # Listed once as a father, once as a mother
 # What of the ringing record?
 ringing.data[ringing.data$bto_ring == "X239739",c(13,3,5,7,10,11)]  # Identified twice as a male, once as a female.
-# What of its partner when it was listed as a Mother?
-ringing.data[ringing.data$bto_ring == gt.nest.data[which(gt.nest.data$Pnum == "20121EX39"),]$Father ,c(13,3,5,7,10,11)]
 gt.nest.data[which(gt.nest.data$Pnum == "20121EX39"),]$Mother <- ""
 
 # Individual 3: ?
 individual <- "Y031429"
 gt.nest.data[which(gt.nest.data$Mother == individual | gt.nest.data$Father == individual),c(1:3, 37:38)]
+ringing.data[ringing.data$bto_ring == individual, c(13,3,5,7,10,11)] 
+ringing.data_2[which(ringing.data_2$ring == individual) ,c(3,12, 10, 7,8)] # Sexed only on these two occassions as a breeder
+# Reset both listings
+gt.nest.data[which(gt.nest.data$Pnum == "20121W56"),]$Father <- ""
+gt.nest.data[which(gt.nest.data$Pnum == "20131W56"),]$Mother <- ""
+stopifnot(dim(gt.nest.data[which(gt.nest.data$Mother == individual | gt.nest.data$Father == individual),c(1:3, 37:38)])[1] == 0)
 
 # Individual 4 ?
-individual <- "vz30547"
+individual <- "VZ30547"
 gt.nest.data[which(gt.nest.data$Mother == individual | gt.nest.data$Father == individual),c(1:3, 37:38)] # Listed once as a father, once as a mother
 # What of the ringing record?
 ringing.data[ringing.data$bto_ring == individual, c(13,3,5,7,10,11)] 
-ringing.data_2[which(ringing.data_2$ring == individual) ,c(3,12, 10, 7,8)] # Nobhing
-# Reset both entries to unknown
+ringing.data_2[which(ringing.data_2$ring == individual) ,c(3,12, 10, 7,8)] # Identified as male multiple times
+# Reset listing as Mother
 gt.nest.data[which(gt.nest.data$Pnum == "20211B87"),]$Mother <- ""
-gt.nest.data[which(gt.nest.data$Pnum == "20191B147"),]$Father <- ""
+stopifnot(dim(gt.nest.data[which(gt.nest.data$Mother == individual | gt.nest.data$Father == individual),])[1] == 1)
 
 # Individual 5 ?
-individual <- "vz29475"
+individual <- "VZ29475"
 gt.nest.data[which(gt.nest.data$Mother == individual | gt.nest.data$Father == individual),c(1:3, 37:38)]
 # Listed as both Mother and Father for 20181EX20, and as father for 20191EX21
 gt.nest.data[which(gt.nest.data$Pnum == "20181EX20"),]$Father <- ""
+stopifnot(dim(gt.nest.data[which(gt.nest.data$Father == individual),])[1] == 0)
 
 #----------------------------------------------------------------------#
 # BUILDING PEDIGREE ===================================================
@@ -455,8 +462,6 @@ colnames(dead.ped) <- c("id", "dam", "sire", "nest", "year", "survival")
 
 
 ## Combine all pedigree information ----
-all_inclusive.id <- c(dead.ped$id, fledge.ped$id, recent.fledgling.ped$id)
-
 
 all_inclusive.ped <- data.frame(c(dead.ped$id, fledge.ped$id, recent.fledgling.ped$id),
                                 c(dead.ped$dam, fledge.ped$dam, recent.fledgling.ped$dam), 
