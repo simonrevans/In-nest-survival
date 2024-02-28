@@ -647,6 +647,44 @@ nest.survival.animal.model <- asreml(fixed = survival ~ 1,
 summary(nest.survival.animal.model)$varcomp[,c("component", "std.error", "bound")]
 summary(nest.survival.animal.model,  coef=T)$coef.fixed
 
+
+## MULTI-PARTY ANIMAL MODEL ----
+mp.animal.model <- asreml(fixed = survival ~ 1,
+                                     random = ~ YEAR
+                                     #+ MOTHER
+                                     + str(~ vm(animal, ainv) 
+                                           + vm(MOTHER, ainv), 
+                                           ~corgh(2):vm(animal, ainv)
+                                           )
+                                     ,residual = ~idv(units),
+                                     family = asr_binomial(),
+                                     data = all_inclusive.ped,
+                                     workspace = 32e6,  # Boost memory
+                                     maxit = 50
+                                     )
+
+summary(mp.animal.model)$varcomp[,c("component", "std.error", "bound")]
+summary(mp.animal.model,  coef=T)$coef.fixed
+
+
+extended.clutchsize.model <- asreml(fixed = CLUTCHSIZE ~ F.AGE.CLASS
+                                    + M.AGE.CLASS,
+                                    random = ~ round
+                                    + YEAR 
+                                    + female.ID
+                                    + male.ID
+                                    + female.maternal.ID
+                                    + male.maternal.ID
+                                    + str(~vm(female.animal, ainv) + vm(male.animal, ainv), 
+                                          ~corgh(2):vm(female.animal, ainv)),
+                                    residual = ~idv(units),
+                                    data = phenotypic.data, 
+                                    workspace = 6e8,  # Boost memory
+                                    maxit = 20,
+                                    na.action = na.method(x = "include", y = "omit"))
+summary(extended.clutchsize.model)$varcomp[,c("component", "std.error", "bound")]
+summary(extended.clutchsize.model, coef=T)$coef.fixed
+
 # POST-FLEDGING SURVIVAL ----
 
 ## Great tits ----
