@@ -38,8 +38,8 @@ install.packages("~/Downloads/nadiv_2.17.2.tar.gz", repos = NULL, type = "source
 # SHORTCUT FOR IMPORTING DATA =========================================
 #----------------------------------------------------------------------#
 
-gt.annual.data <- read.csv("~/Library/CloudStorage/OneDrive-UniversityofExeter/Research/Prenatal survival/Ecology Letters special issue/gt.annual.data (27Feb2024).csv")
-gt.pulli <- read.csv("~/Library/CloudStorage/OneDrive-UniversityofExeter/Research/Prenatal survival/Ecology Letters special issue/gt.pulli (27Feb2024).csv")
+gt.annual.data <- read.csv("~/Library/CloudStorage/OneDrive-UniversityofExeter/Research/Prenatal survival/Ecology Letters special issue/gt.annual.data (28Feb2024).csv")
+gt.pulli <- read.csv("~/Library/CloudStorage/OneDrive-UniversityofExeter/Research/Prenatal survival/Ecology Letters special issue/gt.pulli (28Feb2024).csv")
 #all_inclusive.gt.ped <- read.csv("~/OneDrive - University of Exeter/Research/Prenatal survival/Ecology Letters special issue/All_inclusive.gt.ped (27Feb2024).csv")
 
 #----------------------------------------------------------------------#
@@ -48,13 +48,18 @@ gt.pulli <- read.csv("~/Library/CloudStorage/OneDrive-UniversityofExeter/Researc
  
 all.data <- read.csv("~/Library/CloudStorage/OneDrive-UniversityofExeter/Research/Prenatal survival/Ecology Letters special issue/Wytham GT BT 1960_2023.csv", header = T, na.strings = "NA"); dim(all.data)
 all.data <- all.data[!is.na(all.data$year),]; dim(all.data)
+all.data$Pnum <- toupper(all.data$Pnum)
+all.data$Mother <- toupper(all.data$Mother)
+all.data$Father <- toupper(all.data$Father)
 
 ## Ringing data (1960-2012) ----
 ringing.data <- read.csv("~/Library/CloudStorage/OneDrive-UniversityofExeter/Research/Prenatal survival/Ecology Letters special issue/legacy file.csv", header = T, na.strings = "NA"); dim(ringing.data)
-
+ringing.data$bto_ring <- toupper(ringing.data$bto_ring)
 
 ### Great tits ----
 gt.pulli <- ringing.data[which(ringing.data$bto_species_code == "GRETI" & ringing.data$age == "1" & ringing.data$year >= 1960),]; dim(gt.pulli)
+gt.pulli$bto_ring <- toupper(gt.pulli$bto_ring)
+gt.pulli$pnum <- toupper(gt.pulli$pnum)
 
 # Exclude pulli from non-Wytham nestboxes:
 table(gt.pulli$grid_ref, useNA = "always")
@@ -148,6 +153,7 @@ stopifnot(max(table(gt.pulli$bto_ring)) == 1)
 
 ## Ringing data (2013-2023) ----
 ringing.data_2 <- read.csv("~/Library/CloudStorage/OneDrive-UniversityofExeter/Research/Prenatal survival/Ecology Letters special issue/long_term_ringing_data.csv", header = T, na.strings = "NA"); dim(ringing.data)
+ringing.data_2$ring <- toupper(ringing.data_2$ring)
 
 gt.pulli_2 <- ringing.data_2[which(ringing.data_2$species == "greti" & ringing.data_2$age == "1" & ringing.data_2$year >= "2013" & ringing.data_2$region == "WYT"),]; dim(gt.pulli_2)
 table(gt.pulli_2$region, useNA = "always")
@@ -461,7 +467,7 @@ dead.ped$survival <- 0
 colnames(dead.ped) <- c("id", "dam", "sire", "nest", "year", "survival")
 
 
-## Combine all pedigree information ----
+## *Combine all pedigree information* ----
 
 all_inclusive.ped <- data.frame(c(dead.ped$id, fledge.ped$id, recent.fledgling.ped$id),
                                 c(dead.ped$dam, fledge.ped$dam, recent.fledgling.ped$dam), 
@@ -474,7 +480,7 @@ dim(all_inclusive.ped)
 colnames(all_inclusive.ped) <- c("id", "dam", "sire", "nest", "year", "survival")
 # write.csv(all_inclusive.ped, "~/OneDrive - University of Exeter/Research/Prenatal survival/Ecology Letters special issue/Test.ped (27Feb2024).csv")
 
-
+## Order and sort pedigree ----
 prepped.gt.ped <- prepPed(all_inclusive.ped); dim(prepped.gt.ped)
 
 
