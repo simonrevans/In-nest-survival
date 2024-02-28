@@ -30,9 +30,8 @@
 #----------------------------------------------------------------------#
 
 library(data.table)
-library(MasterBayes)
-
 install.packages("~/Downloads/nadiv_2.17.2.tar.gz", repos = NULL, type = "source"); library(nadiv)
+library(asreml)
 
 #----------------------------------------------------------------------#
 # SHORTCUT FOR IMPORTING DATA =========================================
@@ -478,10 +477,10 @@ all_inclusive.ped <- data.frame(c(dead.ped$id, fledge.ped$id, recent.fledgling.p
                                 )
 dim(all_inclusive.ped)
 colnames(all_inclusive.ped) <- c("id", "dam", "sire", "nest", "year", "survival")
-# write.csv(all_inclusive.ped, "~/OneDrive - University of Exeter/Research/Prenatal survival/Ecology Letters special issue/Test.ped (27Feb2024).csv")
 
 ## Order and sort pedigree ----
 prepped.gt.ped <- prepPed(all_inclusive.ped); dim(prepped.gt.ped)
+# write.csv(prepped.gt.ped, "~/OneDrive - University of Exeter/Research/Prenatal survival/Ecology Letters special issue/prepped.gt.ped (28Feb2024).csv")
 
 
 #----------------------------------------------------------------------#
@@ -626,6 +625,27 @@ summary(gt.density.model)
 #' i.e., via reading RFID tags
 #' 
 ringing.data_2
+
+## ANIMAL MODEL ----
+all_inclusive.ped$YEAR <- as.factor(all_inclusive.ped$year)
+all_inclusive.ped$MOTHER <- as.factor(all_inclusive.ped$dam)
+all_inclusive.ped$animal <- as.factor(all_inclusive.ped$id)
+
+ainv <- ainverse(prepped.gt.ped)
+
+nest.survival.animal.model <- asreml(fixed = survival ~ 1,
+                                     random = ~ YEAR
+                                     #+ MOTHER
+                                     + vm(animal, ainv)
+                                     ,residual = ~idv(units),
+                                     family = asr_binomial(),
+                                     data = all_inclusive.ped,
+                                     #workspace = 32e6,  # Boost memory
+                                     maxit = 50
+                                     )
+
+summary(nest.survival.animal.model)$varcomp[,c("component", "std.error", "bound")]
+summary(nest.survival.animal.model,  coef=T)$coef.fixed
 
 # POST-FLEDGING SURVIVAL ----
 
