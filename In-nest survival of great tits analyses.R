@@ -38,6 +38,7 @@ library(asreml)
 #----------------------------------------------------------------------#
 
 gt.annual.data <- read.csv("~/Library/CloudStorage/OneDrive-UniversityofExeter/Research/Prenatal survival/Ecology Letters special issue/gt.annual.data (28Feb2024).csv")
+  names(gt.annual.data)[names(gt.annual.data) == "w1"] <- "W1"  # This was a mistake, what was labelled as 'w' is the mean in-nest survival rate
 gt.pulli <- read.csv("~/Library/CloudStorage/OneDrive-UniversityofExeter/Research/Prenatal survival/Ecology Letters special issue/gt.pulli (28Feb2024).csv")
 #all_inclusive.gt.ped <- read.csv("~/OneDrive - University of Exeter/Research/Prenatal survival/Ecology Letters special issue/All_inclusive.gt.ped (27Feb2024).csv")
 
@@ -484,12 +485,12 @@ prepped.gt.ped <- prepPed(all_inclusive.ped); dim(prepped.gt.ped)
 
 
 #----------------------------------------------------------------------#
-# OPPORTUNITY FOR SURVIVAL I: conception to fledging ==================
+# OPPORTUNITY FOR SELECTION I: conception to fledging =================
 #----------------------------------------------------------------------#
 ## Overall ----
 # Plot w(1)
 dev.off()
-plot(w1 ~ year, data = gt.annual.data)
+plot(W1 ~ year, data = gt.annual.data)
 lines(smooth.spline(x = gt.annual.data$year, y = gt.annual.data$w1, df = 10))
 plot(I1 ~ year, data = gt.annual.data)
 lines(smooth.spline(x = gt.annual.data$year, y = gt.annual.data$I1, df = 10))
@@ -498,17 +499,17 @@ lines(smooth.spline(x = gt.annual.data$year, y = gt.annual.data$I1, df = 10))
 # Plotting annual in-nest survival for both species
 dev.off(); par(mar = c(4, 4, 1, 1))
 gt <- "darkolivegreen3"
-plot(w1 ~ year, 
+plot(W1 ~ year, 
      data = gt.annual.data, 
      xlab = "Year",
      ylab = "In-nest survival rate",
      pch = 21,
      bg = gt,
      bty = "l",
-     ylim = c(min(gt.annual.data$w1), max(gt.annual.data$w1)),
+     ylim = c(min(gt.annual.data$W1), max(gt.annual.data$W1)),
      las = 1
      )
-lines(smooth.spline(x = gt.annual.data$year, y = gt.annual.data$w1, df = 10), col = gt)
+lines(smooth.spline(x = gt.annual.data$year, y = gt.annual.data$W1, df = 10), col = gt)
 
 # Plotting annual opportunity for in-nest selection for both species
 dev.off(); par(mar = c(4, 4, 1, 1))
@@ -529,8 +530,8 @@ lines(smooth.spline(x = gt.annual.data$year, y = gt.annual.data$I1, df = 10), co
 dev.off(); par(mar = c(4, 5, 1, 1), mfrow = c(2, 1))
 gt <- "darkolivegreen3"
 
-# Plot 1: In-nest survival
-plot((1-w1) ~ year, 
+# Plot 1: In-nest mortality
+plot((1-W1) ~ year, 
      data = gt.annual.data, 
      xlab = "",
      ylab = "Annual in-nest mortality rate",
@@ -539,9 +540,9 @@ plot((1-w1) ~ year,
      bty = "l",
      las = 1
      )
-lines(smooth.spline(x = gt.annual.data$year, y = 1-gt.annual.data$w1, df = 10), col = gt, lwd = 2)
-points(x = gt.annual.data$year, y = 1-gt.annual.data$w1, pch = 21, bg = gt)
-text(labels = expression(italic("a")), x = 1959.5, y = max(1-gt.annual.data$w1), cex = 1.2)
+lines(smooth.spline(x = gt.annual.data$year, y = 1-gt.annual.data$W1, df = 10), col = gt, lwd = 2)
+points(x = gt.annual.data$year, y = 1-gt.annual.data$W1, pch = 21, bg = gt)
+text(labels = expression(italic("a")), x = 1959.5, y = max(1-gt.annual.data$W1), cex = 1.2)
 
 # Plot 2: Opportunity for selection
 par(mar = c(4, 4, 1, 1))
@@ -627,6 +628,7 @@ summary(gt.density.model)
 ringing.data_2
 
 ## ANIMAL MODEL ----
+### In-nest survival ----
 all_inclusive.ped$YEAR <- as.factor(all_inclusive.ped$year)
 all_inclusive.ped$MOTHER <- as.factor(all_inclusive.ped$dam)
 all_inclusive.ped$animal <- as.factor(all_inclusive.ped$id)
@@ -635,7 +637,7 @@ ainv <- ainverse(prepped.gt.ped)
 
 nest.survival.animal.model <- asreml(fixed = survival ~ 1,
                                      random = ~ YEAR
-                                     #+ MOTHER
+                                     + MOTHER
                                      + vm(animal, ainv)
                                      ,residual = ~idv(units),
                                      family = asr_binomial(),
@@ -646,6 +648,9 @@ nest.survival.animal.model <- asreml(fixed = survival ~ 1,
 
 summary(nest.survival.animal.model)$varcomp[,c("component", "std.error", "bound")]
 summary(nest.survival.animal.model,  coef=T)$coef.fixed
+
+### In-nest fitness
+
 
 
 ## MULTI-PARTY ANIMAL MODEL ----
@@ -707,7 +712,7 @@ recruited.gt.fledglings
 
 
 #----------------------------------------------------------------------#
-# OPPORTUNITY FOR SURVIVAL II: fledging to recruitment ================
+# OPPORTUNITY FOR SELECTION II: fledging to recruitment ===============
 #----------------------------------------------------------------------#
 
 gt.w.2 <-  gt.nest.data$number.recruits/gt.nest.data$number.fledglings
