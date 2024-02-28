@@ -229,6 +229,45 @@ gt.annual.data <- cbind(gt.nest.count,  # year and nest count
 ## Save dataset as .csv file
 # write.csv(gt.annual.data, "~/Library/CloudStorage/OneDrive-UniversityofExeter/Research/Prenatal survival/Ecology Letters special issue/gt.annual.data (27Feb2024).csv")
 
+#' Correcting listing of individuals as both Mother and Father within the long-term breeding records. 
+#' I am aware of nine entries in which females are also listed as males.
+#' These were picked up by the prepPed function
+
+# Individual 1: E985078
+gt.nest.data[which(gt.nest.data$Mother == "E985078" | gt.nest.data$Father == "E985078"),c(1:3, 37:38)]  # Individual is listed as a father in three years, a mother once.
+#' What of its partner when listed as a Mother?
+gt.nest.data[which(gt.nest.data$Mother == "TC58285" | gt.nest.data$Father == "TC58285"),c(1:3, 37:38)]  # Listed as a Father in two years
+#' Reset entry as Mother to unknown
+gt.nest.data[which(gt.nest.data$Pnum == "20081CP35"),]$Mother <- ""
+
+# Individual 2: X239739
+gt.nest.data[which(gt.nest.data$Mother == "X239739" | gt.nest.data$Father == "X239739"),c(1:3, 37:38)]  # Listed once as a father, once as a mother
+# What of the ringing record?
+ringing.data[ringing.data$bto_ring == "X239739",c(13,3,5,7,10,11)]  # Identified twice as a male, once as a female.
+# What of its partner when it was listed as a Mother?
+ringing.data[ringing.data$bto_ring == gt.nest.data[which(gt.nest.data$Pnum == "20121EX39"),]$Father ,c(13,3,5,7,10,11)]
+gt.nest.data[which(gt.nest.data$Pnum == "20121EX39"),]$Mother <- ""
+
+# Individual 3: ?
+individual <- "Y031429"
+gt.nest.data[which(gt.nest.data$Mother == individual | gt.nest.data$Father == individual),c(1:3, 37:38)]
+
+# Individual 4 ?
+individual <- "vz30547"
+gt.nest.data[which(gt.nest.data$Mother == individual | gt.nest.data$Father == individual),c(1:3, 37:38)] # Listed once as a father, once as a mother
+# What of the ringing record?
+ringing.data[ringing.data$bto_ring == individual, c(13,3,5,7,10,11)] 
+ringing.data_2[which(ringing.data_2$ring == individual) ,c(3,12, 10, 7,8)] # Nobhing
+# Reset both entries to unknown
+gt.nest.data[which(gt.nest.data$Pnum == "20211B87"),]$Mother <- ""
+gt.nest.data[which(gt.nest.data$Pnum == "20191B147"),]$Father <- ""
+
+# Individual 5 ?
+individual <- "vz29475"
+gt.nest.data[which(gt.nest.data$Mother == individual | gt.nest.data$Father == individual),c(1:3, 37:38)]
+# Listed as both Mother and Father for 20181EX20, and as father for 20191EX21
+gt.nest.data[which(gt.nest.data$Pnum == "20181EX20"),]$Father <- ""
+
 #----------------------------------------------------------------------#
 # BUILDING PEDIGREE ===================================================
 #----------------------------------------------------------------------#
@@ -237,8 +276,6 @@ gt.annual.data <- cbind(gt.nest.count,  # year and nest count
   
 # Revert pnums to the nest-of-origin if they may be different
 stopifnot(sum(is.na(gt.pulli$pnum)) == 0); gt.pulli[gt.pulli$origin_pnum != "",]$pnum <- gt.pulli[gt.pulli$origin_pnum != "",]$origin_pnum
-
-  
   
 # Do all identified fledglings have a pnum?
 dim(gt.pulli[which(gt.pulli$pnum == ""),])[1]  # NO!
@@ -266,11 +303,6 @@ head(rev(sort(table(gt.pulli[which(gt.pulli$pnum == ""),]$grid_ref))))  # But gr
 
 # What about 'site'?
 rev(sort(table(gt.pulli[which(gt.pulli$pnum == ""),]$site)))
-
-# Generate dummy parents for the fledglings from EX9 in 2011, which haven't been assigned a pnum value
-EX9 <- gt.pulli[which(gt.pulli$site == "EX9" & gt.pulli$pnum == ""),]; dim(EX9)
-EX9$Mother <- "dam_EX9_2011"
-EX9$Father <- "sire_EX9_2011"
 
 # Erasing ringing records for fledglings in remaining known site identities, since they are unfamiliar to me (presumably external)
 gt.pulli <- gt.pulli[which(gt.pulli$pnum != "" & gt.pulli$site != ""),]; dim(gt.pulli); head(rev(sort(table(gt.pulli[which(gt.pulli$pnum == ""),]$site))))
@@ -439,9 +471,6 @@ colnames(all_inclusive.ped) <- c("id", "dam", "sire", "nest", "year", "survival"
 
 
 prepped.gt.ped <- prepPed(all_inclusive.ped); dim(prepped.gt.ped)
-
-all_inclusive.gt.ped <-all_inclusive.ped[, 1:3]; dim(all_inclusive.gt.ped); 
-all_inclusive.gt.ped <- orderPed(all_inclusive.gt.ped); dim(all_inclusive.gt.ped)
 
 
 #----------------------------------------------------------------------#
