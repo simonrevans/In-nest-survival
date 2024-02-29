@@ -84,7 +84,16 @@ gt.pulli <- gt.pulli[which(gt.pulli$round == "EX" | gt.pulli$round == "EXA" | gt
                            | gt.pulli$round == "C" | gt.pulli$round == "CA" | gt.pulli$round == "CB" | gt.pulli$round == "CC" 
                            | gt.pulli$round == "CP" | gt.pulli$round == "CPA" | gt.pulli$round == "CPB"
                            | gt.pulli$round == "P"),] 
-rev(sort(table(gt.pulli$round, useNA = "always")))
+table(gt.pulli$round, useNA = "always")
+gt.pulli[which(gt.pulli$round == "BA"),]$round <- "B"
+gt.pulli[which(gt.pulli$round == "CA" | gt.pulli$round == "CB" | gt.pulli$round == "CC"),]$round <- "C"
+gt.pulli[which(gt.pulli$round == "CPA" | gt.pulli$round == "CPB"),]$round <- "CP"
+gt.pulli[which(gt.pulli$round == "EXA" | gt.pulli$round == "EXB" | gt.pulli$round == "EXC" | gt.pulli$round == "EXD" | gt.pulli$round == "EXE" | gt.pulli$round == "EXF" | gt.pulli$round == "EXG" | gt.pulli$round == "EXH" | gt.pulli$round == "EXI"),]$round <- "EX"
+gt.pulli[which(gt.pulli$round == "MPA"),]$round <- "MP"
+gt.pulli[which(gt.pulli$round == "OA" | gt.pulli$round == "OB" | gt.pulli$round == "OC" | gt.pulli$round == "OD"),]$round <- "O"
+gt.pulli[which(gt.pulli$round == "SWA"),]$round <- "SW"
+gt.pulli[which(gt.pulli$round == "WA" | gt.pulli$round == "WB"),]$round <- "W"
+table(gt.pulli$round, useNA = "ifany"); stopifnot(length(table(gt.pulli$round, useNA = "ifany")) == 9)
 
 length(unique(gt.pulli$bto_ring))
 reference <- dim(gt.pulli)[1]
@@ -201,6 +210,11 @@ stopifnot(length(unique(all.data$Pnum)) == length(all.data$Pnum)); length(all.da
 gt.nest.data <- all.data[which(all.data$Species == "g" & !is.na(all.data$Clutch.size)),]; length(gt.nest.data$Pnum)
 gt.nest.data$Mother <- toupper(gt.nest.data$Mother)
 gt.nest.data$Father <- toupper(gt.nest.data$Father)
+
+# Exclude nests outwith the nine main rounds
+gt.nest.data$round <- toupper(gt.nest.data$Section)
+gt.nest.data <- gt.nest.data[which(gt.nest.data$round != "HE" & gt.nest.data$round != "PR" & gt.nest.data$round != "UNKNOWN"),]
+table(gt.nest.data$round, useNA = "ifany"); stopifnot(length(table(gt.nest.data$round, useNA = "ifany")) == 9)
 
 # Correct the list of dead ringed chicks for one nest (20151C39), which actually were ringed in other nests (20151C9A & 20151C37)
 gt.nest.data[gt.nest.data$Pnum == "20151C139",]$Dead.ringed.chick.ids <-  ""
@@ -635,6 +649,16 @@ all_inclusive.ped$YEAR <- as.factor(all_inclusive.ped$year)
 all_inclusive.ped$MOTHER <- as.factor(all_inclusive.ped$dam)
 all_inclusive.ped$NEST <- as.factor(all_inclusive.ped$nest)
 all_inclusive.ped$animal <- as.factor(all_inclusive.ped$id)
+
+## Create nestbox 'round' factor
+all_inclusive.ped$ROUND <- as.factor(gsub("[^[:alpha:]]", "", all_inclusive.ped$nest))
+all_inclusive.ped$ROUND <- substr(all_inclusive.ped$ROUND, start = 1, stop = 2)
+table(all_inclusive.ped$ROUND) # Take letters from nestID
+all_inclusive.ped[which(all_inclusive.ped$ROUND == "CA" | all_inclusive.ped$ROUND == "CB" | all_inclusive.ped$ROUND == "CC"),]$ROUND <- "C"
+all_inclusive.ped[which(all_inclusive.ped$ROUND == "BA"),]$ROUND <- "B"
+all_inclusive.ped[which(all_inclusive.ped$ROUND == "OA" | all_inclusive.ped$ROUND == "OB" | all_inclusive.ped$ROUND == "OC" | all_inclusive.ped$ROUND == "OD"),]$ROUND <- "O"
+all_inclusive.ped[which(all_inclusive.ped$ROUND == "WA" | all_inclusive.ped$ROUND == "WB"),]$ROUND <- "W"
+table(all_inclusive.ped$ROUND) # Take letters from nestID
 
 # Identify whether individuals were in failed or (partially) successful nests
 nest.success <- tapply(all_inclusive.ped$survival, all_inclusive.ped$nest, mean)
