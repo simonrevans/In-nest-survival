@@ -169,6 +169,26 @@ ringing.data_2$ring <- toupper(ringing.data_2$ring)
 gt.pulli_2 <- ringing.data_2[which(ringing.data_2$species == "greti" & ringing.data_2$age == "1" & ringing.data_2$year >= "2013" & ringing.data_2$region == "WYT"),]; dim(gt.pulli_2)
 table(gt.pulli_2$region, useNA = "always")
 
+#### Identify rounds and remove data outwith the big 9 ----
+gt.pulli_2$round <- gsub("[^[:alpha:]]", "", gt.pulli_2$location)
+gt.pulli_2$round <- substr(gt.pulli_2$round, start = 1, stop = 2)
+table(gt.pulli_2$round, useNA = "always")
+gt.pulli_2[which(gt.pulli_2$round == "BA"),]$round <- "B"
+gt.pulli_2[which(gt.pulli_2$round == "CA" | gt.pulli_2$round == "CB" | gt.pulli_2$round == "CC"),]$round <- "C"
+gt.pulli_2[which(gt.pulli_2$round == "OA" | gt.pulli_2$round == "OB" | gt.pulli_2$round == "OC" | gt.pulli_2$round == "OD"),]$round <- "O"
+gt.pulli_2[which(gt.pulli_2$round == "WA" | gt.pulli_2$round == "WB"),]$round <- "W"
+table(gt.pulli_2$round, useNA = "ifany")
+gt.pulli_2 <- gt.pulli_2[which(gt.pulli_2$round == "EX"
+                               | gt.pulli_2$round == "B"
+                               | gt.pulli_2$round == "O"
+                               | gt.pulli_2$round == "W"
+                               | gt.pulli_2$round == "MP"
+                               | gt.pulli_2$round == "SW"
+                               | gt.pulli_2$round == "C"
+                               | gt.pulli_2$round == "CP"
+                               | gt.pulli_2$round == "P"),] 
+table(gt.pulli_2$round, useNA = "ifany"); stopifnot(length(table(gt.pulli_2$round, useNA = "ifany")) == 9)
+
 #### Dealing with replicates ----
 gt.appearance.count <- rev(sort(table(gt.pulli_2$ring))); head(gt.appearance.count, n = 30)
 
@@ -194,7 +214,7 @@ dim(gt.pulli_2); gt.pulli_2 <- gt.pulli_2[which(gt.pulli_2$Freq == 1 | (gt.pulli
 stopifnot(max(head(rev(sort(table(gt.pulli_2$ring))))) == 1)
 
 ## Saving dataset
-# write.csv(gt.pulli, "~/Library/CloudStorage/OneDrive-UniversityofExeter/Research/Prenatal survival/Ecology Letters special issue/gt.pulli (28Feb2024).csv")
+# write.csv(gt.pulli, "~/Library/CloudStorage/OneDrive-UniversityofExeter/Research/Prenatal survival/Ecology Letters special issue/gt.pulli (29Feb2024).csv")
 
 
 #----------------------------------------------------------------------#
@@ -219,6 +239,7 @@ table(gt.nest.data$round, useNA = "ifany"); stopifnot(length(table(gt.nest.data$
 # Correct the list of dead ringed chicks for one nest (20151C39), which actually were ringed in other nests (20151C9A & 20151C37)
 gt.nest.data[gt.nest.data$Pnum == "20151C139",]$Dead.ringed.chick.ids <-  ""
 
+# Exclude nest records where the number of eggs was manipulated
 table(gt.nest.data$Num.eggs.manipulated); gt.nest.data <- gt.nest.data[gt.nest.data$Num.eggs.manipulated == 0,]; table(gt.nest.data$Num.eggs.manipulated)
 summary(gt.nest.data$Clutch.size); table(gt.nest.data$Clutch.size)
 summary(gt.nest.data$Num.fledglings); table(gt.nest.data$Num.fledglings)
@@ -251,7 +272,7 @@ gt.annual.data <- cbind(gt.nest.count,  # year and nest count
   gt.annual.data
 
 ## Save dataset as .csv file
-# write.csv(gt.annual.data, "~/Library/CloudStorage/OneDrive-UniversityofExeter/Research/Prenatal survival/Ecology Letters special issue/gt.annual.data (28Feb2024).csv")
+# write.csv(gt.annual.data, "~/Library/CloudStorage/OneDrive-UniversityofExeter/Research/Prenatal survival/Ecology Letters special issue/gt.annual.data (29Feb2024).csv")
 
 #' Correcting listing of individuals as both Mother and Father within the long-term breeding records. 
 #' I am aware of nine entries in which females are also listed as males.
@@ -651,7 +672,7 @@ all_inclusive.ped$NEST <- as.factor(all_inclusive.ped$nest)
 all_inclusive.ped$animal <- as.factor(all_inclusive.ped$id)
 
 ## Create nestbox 'round' factor
-all_inclusive.ped$ROUND <- as.factor(gsub("[^[:alpha:]]", "", all_inclusive.ped$nest))
+all_inclusive.ped$ROUND <- gsub("[^[:alpha:]]", "", all_inclusive.ped$nest)
 all_inclusive.ped$ROUND <- substr(all_inclusive.ped$ROUND, start = 1, stop = 2)
 table(all_inclusive.ped$ROUND) # Take letters from nestID
 all_inclusive.ped[which(all_inclusive.ped$ROUND == "CA" | all_inclusive.ped$ROUND == "CB" | all_inclusive.ped$ROUND == "CC"),]$ROUND <- "C"
@@ -659,6 +680,7 @@ all_inclusive.ped[which(all_inclusive.ped$ROUND == "BA"),]$ROUND <- "B"
 all_inclusive.ped[which(all_inclusive.ped$ROUND == "OA" | all_inclusive.ped$ROUND == "OB" | all_inclusive.ped$ROUND == "OC" | all_inclusive.ped$ROUND == "OD"),]$ROUND <- "O"
 all_inclusive.ped[which(all_inclusive.ped$ROUND == "WA" | all_inclusive.ped$ROUND == "WB"),]$ROUND <- "W"
 table(all_inclusive.ped$ROUND) # Take letters from nestID
+all_inclusive.ped$ROUND <- as.factor(all_inclusive.ped$ROUND)
 
 # Identify whether individuals were in failed or (partially) successful nests
 nest.success <- tapply(all_inclusive.ped$survival, all_inclusive.ped$nest, mean)
@@ -702,14 +724,14 @@ length(unique(all_inclusive.ped[which(all_inclusive.ped$within.nest.survival.rat
 
 successful.nest.survival.animal.model <- asreml(fixed = survival ~ 1,
                                      random = ~ YEAR
+                                     + ROUND
                                      #+ MOTHER
                                      + NEST
                                      + vm(animal, ainv)
                                      ,residual = ~idv(units),
                                      family = asr_binomial(link = "logit", dispersion = 1),
-                                     data = all_inclusive.ped[which(all_inclusive.ped$within.nest.survival.rate != 0),],
-                                     #workspace = 32e6,  # Boost memory
-                                     maxit = 50
+                                     data = all_inclusive.ped#[which(all_inclusive.ped$within.nest.survival.rate != 0),]
+                                     ,maxit = 50
                                      )
 
 summary(successful.nest.survival.animal.model)$varcomp[,c("component", "std.error", "bound")]
@@ -718,11 +740,13 @@ summary(successful.nest.survival.animal.model,  coef=T)$coef.fixed
 (successful.nest.mu <- summary(successful.nest.survival.animal.model,  coef=T)$coef.fixed["(Intercept)", "solution"])
 (successful.nest.Va <- summary(successful.nest.survival.animal.model)$varcomp["vm(animal, ainv)",c("component")])
 (successful.nest.Vy <- summary(successful.nest.survival.animal.model)$varcomp["YEAR",c("component")])
+(successful.nest.Vround <- summary(successful.nest.survival.animal.model)$varcomp["ROUND",c("component")])
 (successful.nest.Vn <- summary(successful.nest.survival.animal.model)$varcomp["NEST",c("component")])
 (successful.nest.Vp <- sum(summary(successful.nest.survival.animal.model)$varcomp[,c("component")]))
 
 QGparams(mu = successful.nest.mu, var.a = successful.nest.Va, var.p = successful.nest.Vp, model = "binom1.logit")  # ADDITIVE GENETIC
 QGparams(mu = successful.nest.mu, var.a = successful.nest.Vy, var.p = successful.nest.Vp, model = "binom1.logit")  # YEAR
+QGparams(mu = successful.nest.mu, var.a = successful.nest.Vround, var.p = successful.nest.Vp, model = "binom1.logit")  # ROUND
 QGparams(mu = successful.nest.mu, var.a = successful.nest.Vn, var.p = successful.nest.Vp, model = "binom1.logit")  # NEST
 
 ## MULTI-PARTY ANIMAL MODEL ----
