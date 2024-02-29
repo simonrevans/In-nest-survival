@@ -32,6 +32,7 @@
 R.Version(); citation()
 library(data.table)
 install.packages("~/Downloads/nadiv_2.17.2.tar.gz", repos = NULL, type = "source"); library(nadiv)
+library(pedantics)
 library(asreml); citation("asreml")
 library(QGglmm)
 
@@ -39,11 +40,13 @@ library(QGglmm)
 # SHORTCUT FOR IMPORTING DATA =========================================
 #----------------------------------------------------------------------#
 
-gt.annual.data <- read.csv("~/Library/CloudStorage/OneDrive-UniversityofExeter/Research/Prenatal survival/Ecology Letters special issue/gt.annual.data (28Feb2024).csv")
+gt.annual.data <- read.csv("~/Library/CloudStorage/OneDrive-UniversityofExeter/Research/Prenatal survival/Ecology Letters special issue/gt.annual.data (29Feb2024).csv")
   names(gt.annual.data)[names(gt.annual.data) == "w1"] <- "W1"  # This was a mistake, what was labelled as 'w' is the mean in-nest survival rate
-gt.pulli <- read.csv("~/Library/CloudStorage/OneDrive-UniversityofExeter/Research/Prenatal survival/Ecology Letters special issue/gt.pulli (28Feb2024).csv")
-#all_inclusive.gt.ped <- read.csv("~/OneDrive - University of Exeter/Research/Prenatal survival/Ecology Letters special issue/All_inclusive.gt.ped (27Feb2024).csv")
-
+gt.pulli <- read.csv("~/Library/CloudStorage/OneDrive-UniversityofExeter/Research/Prenatal survival/Ecology Letters special issue/gt.pulli (29Feb2024).csv")
+prepped.gt.ped <- read.csv("~/OneDrive - University of Exeter/Research/Prenatal survival/Ecology Letters special issue/prepped.gt.ped (29Feb2024).csv")
+  prepped.gt.ped <- prepped.gt.ped[, -1]
+all_inclusive.ped <- read.csv("~/OneDrive - University of Exeter/Research/Prenatal survival/Ecology Letters special issue/all_inclusive.ped (29Feb2024).csv")
+  
 #----------------------------------------------------------------------#
 # IMPORTING DATA ======================================================
 #----------------------------------------------------------------------#
@@ -332,7 +335,7 @@ dim(gt.pulli[which(gt.pulli$pnum == ""),])[1]  # NO!
 
 ### Known pnum ----
 #### 1960-2012 (fledge.ped) ----
-fledge.ped <- merge(x = gt.pulli[which(gt.pulli$pnum != ""),], y = gt.nest.data[c("Pnum", "Mother", "Father")], by.x = "pnum", by.y = "Pnum", all.x = TRUE, all.y = FALSE); dim(fledge.ped)
+fledge.ped <- merge(x = gt.pulli[which(gt.pulli$pnum != ""),], y = gt.nest.data[c("Pnum", "Mother", "Father")], by.x = "pnum", by.y = "Pnum", all.x = TRUE, all.y = FALSE); dim(fledge.ped); str(fledge.ped)
 head(rev(sort(table(fledge.ped$Mother, useNA = "always"))), n = 10); most.successful.mother.count <- head(rev(sort(table(fledge.ped$Mother, useNA = "always"))))[3]
 head(rev(sort(table(fledge.ped$Father, useNA = "always"))), n = 10); most.successful.father.count <- head(rev(sort(table(fledge.ped$Father, useNA = "always"))))[3]
 
@@ -352,7 +355,7 @@ dim(gt.pulli[which(gt.pulli$pnum == "" & gt.pulli$grid_ref == ""),])[1]  # YES
 head(rev(sort(table(gt.pulli[which(gt.pulli$pnum == ""),]$grid_ref))))  # But grid_ref is not unique to nests
 
 # What about 'site'?
-rev(sort(table(gt.pulli[which(gt.pulli$pnum == ""),]$site)))
+rev(sort(table(gt.pulli[which(gt.pulli$pnum == ""),]$site, useNA = "always")))
 
 # Erasing ringing records for fledglings in remaining known site identities, since they are unfamiliar to me (presumably external)
 gt.pulli <- gt.pulli[which(gt.pulli$pnum != "" & gt.pulli$site != ""),]; dim(gt.pulli); head(rev(sort(table(gt.pulli[which(gt.pulli$pnum == ""),]$site))))
@@ -370,9 +373,10 @@ stopifnot(length((gt.pulli[which(gt.pulli$pnum == ""),]$pnum)) == 0)
 # What are the greatest numbers of ringed chicks per nest?
 head(rev(sort(table(gt.pulli$pnum, useNA = "always"))), n = 30)
 
-fledge.ped$dam <- fledge.ped$Mother
-fledge.ped$sire <- fledge.ped$Father
-fledge.ped$nest <- fledge.ped$pnum
+fledge.ped$dam <- toupper(fledge.ped$Mother)
+fledge.ped$sire <- toupper(fledge.ped$Father)
+fledge.ped$nest <- toupper(fledge.ped$pnum)
+fledge.ped$id <- toupper(fledge.ped$bto_ring)
   
 
 ###### Unknown parents of ringed chicks ----
@@ -414,9 +418,9 @@ head(rev(sort(table(recent.fledgling.ped$Father, useNA = "always"))), n = 10); s
 head(rev(sort(table(recent.fledgling.ped$location), useNA = "always")), n = 30)
   
 # Everyone has been assigned a mother and a father, whether real or dummy
-recent.fledgling.ped$id <- tolower(recent.fledgling.ped$ring)
-recent.fledgling.ped$dam <- recent.fledgling.ped$Mother
-recent.fledgling.ped$sire <- recent.fledgling.ped$Father
+recent.fledgling.ped$id <- toupper(recent.fledgling.ped$ring)
+recent.fledgling.ped$dam <- toupper(recent.fledgling.ped$Mother)
+recent.fledgling.ped$sire <- toupper(recent.fledgling.ped$Father)
 
 # Nest IDs
 recent.fledgling.ped$nest <- recent.fledgling.ped$location
@@ -502,6 +506,9 @@ stopifnot(length(dummy.dam) == length(dummy.dam[dummy.dam != ""])); stopifnot(le
 dead.ped <- data.frame(dummy.id, dummy.dam, dummy.sire, nest, year); dim(dead.ped)
 dead.ped$survival <- 0
 colnames(dead.ped) <- c("id", "dam", "sire", "nest", "year", "survival")
+dead.ped$id <- toupper(dead.ped$id)
+dead.ped$dam <- toupper(dead.ped$dam)
+dead.ped$sire <- toupper(dead.ped$sire)
 
 
 ## *Combine all pedigree information* ----
@@ -515,11 +522,34 @@ all_inclusive.ped <- data.frame(c(dead.ped$id, fledge.ped$id, recent.fledgling.p
                                 )
 dim(all_inclusive.ped)
 colnames(all_inclusive.ped) <- c("id", "dam", "sire", "nest", "year", "survival")
+# write.csv(all_inclusive.ped, "~/OneDrive - University of Exeter/Research/Prenatal survival/Ecology Letters special issue/all_inclusive.ped (29Feb2024).csv")
+
+# Repeat individuals in the complete pedigree?
+head(rev(sort(table(all_inclusive.ped$id))))
+all_inclusive.ped[all_inclusive.ped$id == "TS45000",]
+temp.n <- dim(all_inclusive.ped)[1]; all_inclusive.ped <- all_inclusive.ped[!(all_inclusive.ped$id == "TS45000" & all_inclusive.ped$nest == "20161SW44"),]; stopifnot(temp.n - dim(all_inclusive.ped)[1] == 1)
+
+
+## Phenotypic dataset stats ----
+dim(all_inclusive.ped)[1]  # Number of eggs
+length(unique(all_inclusive.ped$nest))  # Number of nests
+length(unique(all_inclusive.ped$year))  # Number of years
+dim(all_inclusive.ped)[1]/length(unique(all_inclusive.ped$year))  # Mean number of eggs per year
+min(table(all_inclusive.ped$year))  # Minimum number of eggs observed in a breeding season
+max(table(all_inclusive.ped$year))  # Maximum number of eggs observed in a breeding season
+sum(all_inclusive.ped$survival)  # Total number of fledglings
+sum(all_inclusive.ped$survival)/length(unique(all_inclusive.ped$year))  # Annual mean number of fledglings
+min(tapply(all_inclusive.ped$survival, INDEX = all_inclusive.ped$year, FUN = sum))  # Minimum number of fledglings observed in a breeding season
+max(tapply(all_inclusive.ped$survival, INDEX = all_inclusive.ped$year, FUN = sum))  # Maximum number of fledglings observed in a breeding season
+
 
 ## Order and sort pedigree ----
 prepped.gt.ped <- prepPed(all_inclusive.ped); dim(prepped.gt.ped)
-# write.csv(prepped.gt.ped, "~/OneDrive - University of Exeter/Research/Prenatal survival/Ecology Letters special issue/prepped.gt.ped (28Feb2024).csv")
+# write.csv(prepped.gt.ped, "~/OneDrive - University of Exeter/Research/Prenatal survival/Ecology Letters special issue/prepped.gt.ped (29Feb2024).csv")
 
+
+## (Alternatively) fix pedigree ----
+fixed.gt.ped <- fixPedigree(Ped = all_inclusive.ped[, 1:3])
 
 #----------------------------------------------------------------------#
 # OPPORTUNITY FOR SELECTION I: conception to fledging =================
@@ -686,9 +716,28 @@ all_inclusive.ped$ROUND <- as.factor(all_inclusive.ped$ROUND)
 nest.success <- tapply(all_inclusive.ped$survival, all_inclusive.ped$nest, mean)
 all_inclusive.ped$within.nest.survival.rate <- nest.success[all_inclusive.ped$nest]
 
-ainv <- ainverse(prepped.gt.ped)
+# Save all_inclusive.ped
+# write.csv(all_inclusive.ped, "~/OneDrive - University of Exeter/Research/Prenatal survival/Ecology Letters special issue/all_inclusive.ped (29Feb2024).csv")
 
-### All individuals ----
+## Pedigree stats ----
+dim(all_inclusive.ped)[1]  # Number of phenotyped individuals
+dim(all_inclusive.ped)[1] - length(grep("dam", all_inclusive.ped$dam)) # Number of known maternities
+length(grep("DAM", all_inclusive.ped$dam))  # Number of unknown maternities
+dim(all_inclusive.ped)[1] - length(grep("sire", all_inclusive.ped$sire)) # Number of known paternities
+length(grep("SIRE", all_inclusive.ped$sire))  # Number of unknown paternities
+dim(prepped.gt.ped)[1]  # Length of pedigree
+ped.stats <- pedigreeStats(Ped = fixed.gt.ped[, 1:3], 
+              dat = NULL,
+              retain = "ancestors",
+              graphicalReport = "n",
+              lowMem = T,
+              includeA = F
+              )
+head(ped.stats, n = 11)
+
+ainv <- ainverse(fixed.gt.ped)
+
+## All individuals ----
 # Sampling
 length(unique(all_inclusive.ped$id)); stopifnot(length(unique(all_inclusive.ped$id)) == dim(all_inclusive.ped)[1])
 length(unique(all_inclusive.ped$nest))
