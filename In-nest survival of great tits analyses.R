@@ -271,7 +271,7 @@ gt.annual.data <- cbind(gt.nest.count,  # year and nest count
                         gt.individual.mortality.count[,2]/gt.nonabandoned.nests.count[,2],  # mortality rate attributable to death in non-failed nests
                         gt.fledgling.counts$fledgling.total/gt.egg.counts$egg.total,  # in-nest survival rate (w1)
                         (1-(gt.fledgling.counts$fledgling.total/gt.egg.counts$egg.total))/(gt.fledgling.counts$fledgling.total/gt.egg.counts$egg.total))  # Opportunity for in-nest selection (I1)
-  colnames(gt.annual.data) <- c("year", "nest.count", "nest.failure.rate", "mortality.rate.due.to.nest.failure", "egg.total", "fledgling.total", "individual.failure.rate", "w1", "I1")
+  colnames(gt.annual.data) <- c("year", "nest.count", "nest.failure.rate", "mortality.rate.due.to.nest.failure", "egg.total", "fledgling.total", "individual.failure.rate", "W1", "I1")
   gt.annual.data
 
 ## Save dataset as .csv file
@@ -550,14 +550,55 @@ prepped.gt.ped <- prepPed(all_inclusive.ped); dim(prepped.gt.ped)
 ## (Alternatively) fix pedigree ----
 fixed.gt.ped <- fixPedigree(Ped = all_inclusive.ped[, 1:3])
 
+
+#____-------------------------------------------------------------------
+# ANNUAL VARIATION IN IN-NEST SURVIVAL =================
 #----------------------------------------------------------------------#
+
+# Annual proportion of mothers caught by hand
+tapply(ringing.data[which(ringing.data$sex == "F" & ringing.data$pnum != "" & ringing.data$age!= 1),]$bto_ring, 
+       INDEX = ringing.data[which(ringing.data$sex == "F" & ringing.data$pnum != "" & ringing.data$age!= 1),]$year,
+       FUN = length
+         )
+tapply(ringing.data[which(ringing.data$sex == "F" & ringing.data$pnum != "" & ringing.data$age!= 1),]$bto_ring, 
+       INDEX = ringing.data[which(ringing.data$sex == "F" & ringing.data$pnum != "" & ringing.data$age!= 1),]$year,
+       FUN = length
+         )
+
+# Recent years
+female.remote.count <- tapply(ringing.data_2[which(ringing.data_2$sex == "F" & ringing.data_2$location != "" & ringing.data_2$age!= 1 & ringing.data_2$retrap == "Diurnal Scan"),]$ring, 
+                       INDEX = ringing.data_2[which(ringing.data_2$sex == "F" & ringing.data_2$location != "" & ringing.data_2$age!= 1 & ringing.data_2$retrap == "Diurnal Scan"),]$year,
+                       FUN = length
+                       )
+alternative.female.remote.count <- tapply(ringing.data_2[which(ringing.data_2$sex == "F" & ringing.data_2$location != "" & ringing.data_2$age!= 1 & is.na(ringing.data_2$wing_length)),]$ring, 
+                       INDEX = ringing.data_2[which(ringing.data_2$sex == "F" & ringing.data_2$location != "" & ringing.data_2$age!= 1 & is.na(ringing.data_2$wing_length)),]$year,
+                       FUN = length
+                       )
+male.remote.count <- tapply(ringing.data_2[which(ringing.data_2$sex == "M" & ringing.data_2$location != "" & ringing.data_2$age!= 1 & ringing.data_2$retrap == "Diurnal Scan"),]$ring, 
+                       INDEX = ringing.data_2[which(ringing.data_2$sex == "M" & ringing.data_2$location != "" & ringing.data_2$age!= 1 & ringing.data_2$retrap == "Diurnal Scan"),]$year,
+                       FUN = length
+                       )
+
+female.count <- tapply(ringing.data_2[which(ringing.data_2$sex == "F" & ringing.data_2$location != "" & ringing.data_2$age!= 1),]$ring, 
+       INDEX = ringing.data_2[which(ringing.data_2$sex == "F" & ringing.data_2$location != "" & ringing.data_2$age!= 1),]$year,
+       FUN = length
+         )
+
+male.count <- tapply(ringing.data_2[which(ringing.data_2$sex == "M" & ringing.data_2$location != "" & ringing.data_2$age!= 1),]$ring, 
+       INDEX = ringing.data_2[which(ringing.data_2$sex == "M" & ringing.data_2$location != "" & ringing.data_2$age!= 1),]$year,
+       FUN = length
+         )
+
+
+
+#____------------------------------------------------------------------
 # OPPORTUNITY FOR SELECTION I: conception to fledging =================
 #----------------------------------------------------------------------#
 ## Overall ----
-# Plot w(1)
+# Plot W(1)
 dev.off()
 plot(W1 ~ year, data = gt.annual.data)
-lines(smooth.spline(x = gt.annual.data$year, y = gt.annual.data$w1, df = 10))
+lines(smooth.spline(x = gt.annual.data$year, y = gt.annual.data$W1, df = 10))
 plot(I1 ~ year, data = gt.annual.data)
 lines(smooth.spline(x = gt.annual.data$year, y = gt.annual.data$I1, df = 10))
 
@@ -887,15 +928,15 @@ Vr <- PdV.successful.nest.survival.animal.model$VCV[, "units"]
 Vp <- rowSums(PdV.successful.nest.survival.animal.model[["VCV"]])
 mu <- PdV.successful.nest.survival.animal.model$Sol[,"(Intercept)"]
 
-params <- pmap_dfr(list(mu = mu,
+Va.params <- pmap_dfr(list(mu = mu,
                         var.a = Va,
                         var.p = Vp),
                    QGparams,
                    model = "binom1.probit",
                    verbose = F
                    )
-posterior.mode(as.mcmc(params[["h2.obs"]]))
-HPDinterval(as.mcmc(params[["h2.obs"]]))
+posterior.mode(as.mcmc(Va.params[["h2.obs"]]))
+HPDinterval(as.mcmc(Va.params[["h2.obs"]]))
 
 
 
