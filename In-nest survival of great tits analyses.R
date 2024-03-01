@@ -35,6 +35,7 @@ install.packages("~/Downloads/nadiv_2.17.2.tar.gz", repos = NULL, type = "source
 library(pedantics)
 library(asreml); citation("asreml")
 library(QGglmm)
+library(purrr)
 
 #----------------------------------------------------------------------#
 # SHORTCUT FOR IMPORTING DATA =========================================
@@ -217,8 +218,7 @@ dim(gt.pulli_2); gt.pulli_2 <- gt.pulli_2[which(gt.pulli_2$Freq == 1 | (gt.pulli
 stopifnot(max(head(rev(sort(table(gt.pulli_2$ring))))) == 1)
 
 ## Saving dataset
-# write.csv(gt.pulli, "~/Library/CloudStorage/OneDrive-UniversityofExeter/Research/Prenatal survival/Ecology Letters special issue/gt.pulli (29Feb2024).csv")
-
+#write.csv(gt.pulli, paste0("~/Library/CloudStorage/OneDrive-UniversityofExeter/Research/Prenatal survival/Ecology Letters special issue/gt.pulli (", format(Sys.Date(), format = "%d%b%Y"), ").csv"))
 
 #----------------------------------------------------------------------#
 # DATA CHECKING =======================================================
@@ -275,7 +275,7 @@ gt.annual.data <- cbind(gt.nest.count,  # year and nest count
   gt.annual.data
 
 ## Save dataset as .csv file
-# write.csv(gt.annual.data, "~/Library/CloudStorage/OneDrive-UniversityofExeter/Research/Prenatal survival/Ecology Letters special issue/gt.annual.data (29Feb2024).csv")
+# write.csv(gt.annual.data, paste0("~/Library/CloudStorage/OneDrive-UniversityofExeter/Research/Prenatal survival/Ecology Letters special issue/gt.annual.data (", format(Sys.Date(), format = "%d%b%Y"), ").csv"))
 
 #' Correcting listing of individuals as both Mother and Father within the long-term breeding records. 
 #' I am aware of nine entries in which females are also listed as males.
@@ -522,7 +522,7 @@ all_inclusive.ped <- data.frame(c(dead.ped$id, fledge.ped$id, recent.fledgling.p
                                 )
 dim(all_inclusive.ped)
 colnames(all_inclusive.ped) <- c("id", "dam", "sire", "nest", "year", "survival")
-# write.csv(all_inclusive.ped, "~/OneDrive - University of Exeter/Research/Prenatal survival/Ecology Letters special issue/all_inclusive.ped (29Feb2024).csv")
+# write.csv(all_inclusive.ped, paste0("~/OneDrive - University of Exeter/Research/Prenatal survival/Ecology Letters special issue/all_inclusive.ped (", format(Sys.Date(), format = "%d%b%Y"), ").csv"))
 
 # Repeat individuals in the complete pedigree?
 head(rev(sort(table(all_inclusive.ped$id))))
@@ -545,8 +545,7 @@ max(tapply(all_inclusive.ped$survival, INDEX = all_inclusive.ped$year, FUN = sum
 
 ## Order and sort pedigree ----
 prepped.gt.ped <- prepPed(all_inclusive.ped); dim(prepped.gt.ped)
-# write.csv(prepped.gt.ped, "~/OneDrive - University of Exeter/Research/Prenatal survival/Ecology Letters special issue/prepped.gt.ped (29Feb2024).csv")
-
+# write.csv(prepped.gt.ped, paste0("~/OneDrive - University of Exeter/Research/Prenatal survival/Ecology Letters special issue/prepped.gt.ped (", format(Sys.Date(), format = "%d%b%Y"), ").csv"))
 
 ## (Alternatively) fix pedigree ----
 fixed.gt.ped <- fixPedigree(Ped = all_inclusive.ped[, 1:3])
@@ -717,7 +716,7 @@ nest.success <- tapply(all_inclusive.ped$survival, all_inclusive.ped$nest, mean)
 all_inclusive.ped$within.nest.survival.rate <- nest.success[all_inclusive.ped$nest]
 
 # Save all_inclusive.ped
-# write.csv(all_inclusive.ped, "~/OneDrive - University of Exeter/Research/Prenatal survival/Ecology Letters special issue/all_inclusive.ped (29Feb2024).csv")
+#write.csv(all_inclusive.ped, paste0("~/OneDrive - University of Exeter/Research/Prenatal survival/Ecology Letters special issue/all_inclusive.ped (", format(Sys.Date(), format = "%d%b%Y"), ").csv"))
 
 ## Pedigree stats ----
 dim(all_inclusive.ped)[1]  # Number of phenotyped individuals
@@ -771,12 +770,12 @@ QGparams(mu = mu, var.a = Vn, var.p = Vp, model = "binom1.logit")  # NEST
 length(unique(all_inclusive.ped[which(all_inclusive.ped$within.nest.survival.rate != 0),]$id)); stopifnot(length(unique(all_inclusive.ped[which(all_inclusive.ped$within.nest.survival.rate != 0),]$id)) == dim(all_inclusive.ped[which(all_inclusive.ped$within.nest.survival.rate != 0),])[1])
 length(unique(all_inclusive.ped[which(all_inclusive.ped$within.nest.survival.rate != 0),]$nest))
 
-successful.nest.survival.animal.model <- asreml(fixed = survival ~ 1,
+successful.nest.survival.animal.model <- asreml(fixed = survival ~ 1 + YEAR,
                                      random = ~ YEAR
                                      + ROUND
-                                     #+ MOTHER
+                                     + MOTHER
                                      + NEST
-                                     + vm(animal, ainv)
+                                     #+ vm(animal, ainv)
                                      ,residual = ~idv(units),
                                      family = asr_binomial(link = "logit", dispersion = 1),
                                      data = all_inclusive.ped#[which(all_inclusive.ped$within.nest.survival.rate != 0),]
@@ -797,6 +796,108 @@ QGparams(mu = successful.nest.mu, var.a = successful.nest.Va, var.p = successful
 QGparams(mu = successful.nest.mu, var.a = successful.nest.Vy, var.p = successful.nest.Vp, model = "binom1.logit")  # YEAR
 QGparams(mu = successful.nest.mu, var.a = successful.nest.Vround, var.p = successful.nest.Vp, model = "binom1.logit")  # ROUND
 QGparams(mu = successful.nest.mu, var.a = successful.nest.Vn, var.p = successful.nest.Vp, model = "binom1.logit")  # NEST
+
+
+## MCMCglmm ----
+
+# Priors (https://stackoverflow.com/questions/40617099/mcmcglmm-binomial-model-prior)
+prior0 <- list(G = list(G1 = list(V = 1, nu = 0.002),
+                        G2 = list(V = 1, nu = 0.002),
+                        G3 = list(V = 1, nu = 0.002),
+                        G4 = list(V = 1, nu = 0.002)
+                        ),
+               R = list(V = 0.5, nu = 0.002, fix = FALSE)
+               )
+
+# Quick test: 
+THIN = 100; SAMPLE = 100; BURNIN = 0.1*THIN*SAMPLE; NITT = BURNIN + THIN*SAMPLE; NITT
+
+start.time <- proc.time()[3]
+successful.nest.survival.animal.model <- MCMCglmm(survival ~ 1,
+                                                  random = ~animal + YEAR + MOTHER +ROUND,
+                                                  family = "categorical",
+                                                  prior = prior0,
+                                                  data = all_inclusive.ped[which(all_inclusive.ped$within.nest.survival.rate != 0),],
+                                                  ped = fixed.gt.ped,
+                                                  burnin = BURNIN,
+                                                  thin = THIN,
+                                                  nitt = NITT
+                                                  )
+run.time <- proc.time()[3] - start.time; run.time
+iteration.time <- run.time / NITT; iteration.time
+#saveRDS(successful.nest.survival.animal.model, paste0("~/OneDrive - University of Exeter/Research/Vlieland postdoc/Animal model of clutch size/In-nest survival animal model (successful nests only)", NITT/1000, "Ki ", format(Sys.Date(), format = "%d%b%Y"),".rds"))
+
+summary(successful.nest.survival.animal.model)
+autocorr.diag(successful.nest.survival.animal.model$VCV)
+
+Va <- successful.nest.survival.animal.model$VCV[,"animal"]
+Vround <- successful.nest.survival.animal.model$VCV[,"ROUND"]
+Vy <- successful.nest.survival.animal.model$VCV[,"YEAR"]
+Vm <- successful.nest.survival.animal.model$VCV[,"MOTHER"]
+Vr <- successful.nest.survival.animal.model$VCV[, "units"]
+Vp <- rowSums(successful.nest.survival.animal.model[["VCV"]])
+mu <- successful.nest.survival.animal.model$Sol[,"(Intercept)"]
+
+params <- pmap_dfr(list(mu = mu,
+                        var.a = Va,
+                        var.p = Vp),
+                   QGparams,
+                   model = "binom1.logit",
+                   verbose = F
+                   )
+posterior.mode(as.mcmc(params[["h2.obs"]]))
+HPDinterval(as.mcmc(params[["h2.obs"]]))
+  
+
+### Threshold model ----
+# Following advice here: https://stat.ethz.ch/pipermail/r-sig-mixed-models/2017q4/026115.html
+prior.PdV <- list(G = list(G1 = list(V = 1, nu = 0.002),
+                        G2 = list(V = 1, nu = 0.002),
+                        G3 = list(V = 1, nu = 0.002),
+                        G4 = list(V = 1, nu = 0.002)
+                        ),
+               R = list(V = 1, fix = 1)
+               )
+
+THIN = 10; SAMPLE = 100; BURNIN = 0.1*THIN*SAMPLE; NITT = BURNIN + THIN*SAMPLE; NITT
+
+start.time <- proc.time()[3]
+PdV.successful.nest.survival.animal.model <- MCMCglmm(survival ~ 1,
+                                                  random = ~animal + YEAR + MOTHER +ROUND,
+                                                  family = "threshold",
+                                                  prior = prior.PdV,
+                                                  data = all_inclusive.ped[which(all_inclusive.ped$within.nest.survival.rate != 0),],
+                                                  ped = fixed.gt.ped,
+                                                  burnin = BURNIN,
+                                                  thin = THIN,
+                                                  nitt = NITT,
+                                                  trunc = TRUE  # See: https://stat.ethz.ch/pipermail/r-sig-mixed-models/2017q4/026115.html
+                                                  )
+run.time <- proc.time()[3] - start.time; run.time
+iteration.time <- run.time / NITT; iteration.time
+
+summary(PdV.successful.nest.survival.animal.model)
+autocorr.diag(PdV.successful.nest.survival.animal.model$VCV)
+
+Va <- PdV.successful.nest.survival.animal.model$VCV[,"animal"]
+Vround <- PdV.successful.nest.survival.animal.model$VCV[,"ROUND"]
+Vy <- PdV.successful.nest.survival.animal.model$VCV[,"YEAR"]
+Vm <- PdV.successful.nest.survival.animal.model$VCV[,"MOTHER"]
+Vr <- PdV.successful.nest.survival.animal.model$VCV[, "units"]
+Vp <- rowSums(PdV.successful.nest.survival.animal.model[["VCV"]])
+mu <- PdV.successful.nest.survival.animal.model$Sol[,"(Intercept)"]
+
+params <- pmap_dfr(list(mu = mu,
+                        var.a = Va,
+                        var.p = Vp),
+                   QGparams,
+                   model = "binom1.probit",
+                   verbose = F
+                   )
+posterior.mode(as.mcmc(params[["h2.obs"]]))
+HPDinterval(as.mcmc(params[["h2.obs"]]))
+
+
 
 ## MULTI-PARTY ANIMAL MODEL ----
 mp.animal.model <- asreml(fixed = survival ~ 1,
