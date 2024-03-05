@@ -34,6 +34,7 @@ library(data.table)
 install.packages("~/Downloads/nadiv_2.17.2.tar.gz", repos = NULL, type = "source"); library(nadiv)
 library(pedantics)
 library(asreml); citation("asreml")
+library(MCMCglmm); citation("MCMCglmm")
 library(QGglmm)
 library(purrr)
 
@@ -60,6 +61,7 @@ all.data$Father <- toupper(all.data$Father)
 
 ## Ringing data (1960-2012) ----
 ringing.data <- read.csv("~/Library/CloudStorage/OneDrive-UniversityofExeter/Research/Prenatal survival/Ecology Letters special issue/legacy file.csv", header = T, na.strings = "NA"); dim(ringing.data)
+riging.data <- ringing.data[ringing.data$bto_species_code == "GRETI",]
 ringing.data$bto_ring <- toupper(ringing.data$bto_ring)
 
 ### Great tits ----
@@ -168,6 +170,7 @@ stopifnot(max(table(gt.pulli$bto_ring)) == 1)
 
 ## Ringing data (2013-2023) ----
 ringing.data_2 <- read.csv("~/Library/CloudStorage/OneDrive-UniversityofExeter/Research/Prenatal survival/Ecology Letters special issue/long_term_ringing_data.csv", header = T, na.strings = "NA"); dim(ringing.data)
+ringing.data_2 <- ringing.data_2[ringing.data_2$species == "greti",]
 ringing.data_2$ring <- toupper(ringing.data_2$ring)
 
 gt.pulli_2 <- ringing.data_2[which(ringing.data_2$species == "greti" & ringing.data_2$age == "1" & ringing.data_2$year >= "2013" & ringing.data_2$region == "WYT"),]; dim(gt.pulli_2)
@@ -552,7 +555,7 @@ fixed.gt.ped <- fixPedigree(Ped = all_inclusive.ped[, 1:3])
 
 
 #____-------------------------------------------------------------------
-# ANNUAL VARIATION IN IN-NEST SURVIVAL =================
+# ANNUAL VARIATION IN IN-NEST SURVIVAL ================================
 #----------------------------------------------------------------------#
 
 # Annual proportion of mothers caught by hand
@@ -565,30 +568,45 @@ tapply(ringing.data[which(ringing.data$sex == "F" & ringing.data$pnum != "" & ri
        FUN = length
          )
 
-# Recent years
-female.remote.count <- tapply(ringing.data_2[which(ringing.data_2$sex == "F" & ringing.data_2$location != "" & ringing.data_2$age!= 1 & ringing.data_2$retrap == "Diurnal Scan"),]$ring, 
-                       INDEX = ringing.data_2[which(ringing.data_2$sex == "F" & ringing.data_2$location != "" & ringing.data_2$age!= 1 & ringing.data_2$retrap == "Diurnal Scan"),]$year,
+# Recent years ----
+head(rev(sort(table(ringing.data_2$location))), n = 100)
+
+## Retain only records from the breeding season
+ring.2 <- ringing.data_2
+dim(ring.2)[1]; ring.2 <- ring.2[grep(" ", ring.2$location, invert = TRUE),]; dim(ring.2)[1]
+dim(ring.2)[1]; ring.2 <- ring.2[nchar(ring.2$location) >= 7,]; dim(ring.2)[1]; head(rev(sort(table(ring.2$location))), n = 50); tail(rev(sort(table(ring.2$location))), n = 50); length(unique(ring.2$location))
+dim(ring.2)[1]; ring.2 <- ring.2[grep(pattern = "^(1|2)\\d{4}", ring.2$location),]; dim(ring.2)[1]  # First five characters in location are numbers
+dim(ring.2)[1]; ring.2 <- ring.2[grep(pattern = "[0-9]$", ring.2$location),]; dim(ring.2)[1]  # Last character in string is a number
+
+female.remote.count <- tapply(ring.2[which(ring.2$year >= 2011, ring.2$sex == "F" & ring.2$location != "" & ring.2$age!= 1 & ring.2$retrap == "Diurnal Scan"),]$ring, 
+                       INDEX = ring.2[which(ring.2$year >= 2011, ring.2$sex == "F" & ring.2$location != "" & ring.2$age!= 1 & ring.2$retrap == "Diurnal Scan"),]$year,
                        FUN = length
                        )
-alternative.female.remote.count <- tapply(ringing.data_2[which(ringing.data_2$sex == "F" & ringing.data_2$location != "" & ringing.data_2$age!= 1 & is.na(ringing.data_2$wing_length)),]$ring, 
-                       INDEX = ringing.data_2[which(ringing.data_2$sex == "F" & ringing.data_2$location != "" & ringing.data_2$age!= 1 & is.na(ringing.data_2$wing_length)),]$year,
-                       FUN = length
-                       )
-male.remote.count <- tapply(ringing.data_2[which(ringing.data_2$sex == "M" & ringing.data_2$location != "" & ringing.data_2$age!= 1 & ringing.data_2$retrap == "Diurnal Scan"),]$ring, 
-                       INDEX = ringing.data_2[which(ringing.data_2$sex == "M" & ringing.data_2$location != "" & ringing.data_2$age!= 1 & ringing.data_2$retrap == "Diurnal Scan"),]$year,
+female.remote.count <- tapply(ring.2[which(ring.2$year >= 2011, ring.2$sex == "F" & ring.2$location != "" & ring.2$age!= 1 & ring.2$retrap != "Diurnal Scan"),]$ring, 
+                       INDEX = ring.2[which(ring.2$year >= 2011, ring.2$sex == "F" & ring.2$location != "" & ring.2$age!= 1 & ring.2$retrap != "Diurnal Scan"),]$year,
                        FUN = length
                        )
 
-female.count <- tapply(ringing.data_2[which(ringing.data_2$sex == "F" & ringing.data_2$location != "" & ringing.data_2$age!= 1),]$ring, 
-       INDEX = ringing.data_2[which(ringing.data_2$sex == "F" & ringing.data_2$location != "" & ringing.data_2$age!= 1),]$year,
+alternative.female.remote.count <- tapply(ring.2[which(ring.2$sex == "F" & ring.2$location != "" & ring.2$age!= 1 & is.na(ring.2$wing_length)),]$ring, 
+                       INDEX = ring.2[which(ring.2$sex == "F" & ring.2$location != "" & ring.2$age!= 1 & is.na(ring.2$wing_length)),]$year,
+                       FUN = length
+                       )
+male.remote.count <- tapply(ring.2[which(ring.2$sex == "M" & ring.2$location != "" & ring.2$age!= 1 & ring.2$retrap == "Diurnal Scan"),]$ring, 
+                       INDEX = ring.2[which(ring.2$sex == "M" & ring.2$location != "" & ring.2$age!= 1 & ring.2$retrap == "Diurnal Scan"),]$year,
+                       FUN = length
+                       )
+
+female.count <- tapply(ring.2[which(ring.2$year >= 2011, ring.2$sex == "F" & ring.2$location != "" & ring.2$age!= 1),]$ring, 
+       INDEX = ring.2[which(ring.2$year >= 2011, ring.2$sex == "F" & ring.2$location != "" & ring.2$age!= 1),]$year,
        FUN = length
          )
 
-male.count <- tapply(ringing.data_2[which(ringing.data_2$sex == "M" & ringing.data_2$location != "" & ringing.data_2$age!= 1),]$ring, 
-       INDEX = ringing.data_2[which(ringing.data_2$sex == "M" & ringing.data_2$location != "" & ringing.data_2$age!= 1),]$year,
+male.count <- tapply(ring.2[which(ring.2$sex == "M" & ring.2$location != "" & ring.2$age!= 1),]$ring, 
+       INDEX = ring.2[which(ring.2$sex == "M" & ring.2$location != "" & ring.2$age!= 1),]$year,
        FUN = length
          )
 
+(female.handled.prop <- (female.count - female.remote.count) / female.count)
 
 
 #____------------------------------------------------------------------
@@ -900,7 +918,7 @@ prior.PdV <- list(G = list(G1 = list(V = 1, nu = 0.002),
                R = list(V = 1, fix = 1)
                )
 
-THIN = 10; SAMPLE = 100; BURNIN = 0.1*THIN*SAMPLE; NITT = BURNIN + THIN*SAMPLE; NITT
+THIN = 1000; SAMPLE = 100; BURNIN = 0.1*THIN*SAMPLE; NITT = BURNIN + THIN*SAMPLE; NITT
 
 start.time <- proc.time()[3]
 PdV.successful.nest.survival.animal.model <- MCMCglmm(survival ~ 1,
@@ -998,7 +1016,7 @@ colnames(recruited.gt.fledglings) <- c("year", "count", "sex ratio (f:m)")  # Se
 recruited.gt.fledglings
 
 
-#----------------------------------------------------------------------#
+#____------------------------------------------------------------------
 # OPPORTUNITY FOR SELECTION II: fledging to recruitment ===============
 #----------------------------------------------------------------------#
 
